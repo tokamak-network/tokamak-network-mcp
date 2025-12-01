@@ -8,6 +8,7 @@ const SUPPORTED_ABI = parseAbi([
   'function swapFromTON(uint256 tonAmount)',
   'function approve(address spender, uint256 amount)',
   'function approveAndCall(address spender, uint256 amount, bytes data)',
+  'function requestWithdrawal(address layer2, uint256 amount)',
 ]);
 
 function decodeCalldata(data: string) {
@@ -232,6 +233,18 @@ function App() {
                           </>
                         );
                       })()}
+                      {decoded.functionName === 'requestWithdrawal' && (
+                        <>
+                          <div>
+                            <p className="text-sm text-gray-400">Layer2</p>
+                            <p className="font-mono text-xs break-all">{decoded.args[0] as string}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-400">Amount</p>
+                            <p className="font-mono text-sm">{formatUnits(decoded.args[1] as bigint, 27)} TON</p>
+                          </div>
+                        </>
+                      )}
                     </div>
                   );
                 }
