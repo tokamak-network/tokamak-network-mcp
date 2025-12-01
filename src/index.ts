@@ -6,6 +6,7 @@ import {
   registerTonTools,
   registerUnstakeTools,
   registerWalletTools,
+  registerWithdrawTools,
 } from './tools';
 import { startServer } from './ws';
 
@@ -27,6 +28,7 @@ registerWalletTools(server);
 registerErc20Tools(server);
 registerStakeTools(server);
 registerUnstakeTools(server);
+registerWithdrawTools(server);
 
 // Handle shutdown
 process.on('SIGINT', () => {

@@ -3,6 +3,7 @@ import { registerStakeTools } from './stake';
 import { registerTonTools } from './ton';
 import { registerUnstakeTools } from './unstake';
 import { registerWalletTools } from './wallet';
+import { registerWithdrawTools } from './withdraw';
 
 export {
   registerTonTools,
@@ -10,4 +11,5 @@ export {
   registerErc20Tools,
   registerStakeTools,
   registerUnstakeTools,
+  registerWithdrawTools,
 };

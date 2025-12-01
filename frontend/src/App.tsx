@@ -9,6 +9,7 @@ const SUPPORTED_ABI = parseAbi([
   'function approve(address spender, uint256 amount)',
   'function approveAndCall(address spender, uint256 amount, bytes data)',
   'function requestWithdrawal(address layer2, uint256 amount)',
+  'function processRequest(address layer2, bool receiveTON)',
 ]);
 
 function decodeCalldata(data: string) {
@@ -242,6 +243,18 @@ function App() {
                           <div>
                             <p className="text-sm text-gray-400">Amount</p>
                             <p className="font-mono text-sm">{formatUnits(decoded.args[1] as bigint, 27)} TON</p>
+                          </div>
+                        </>
+                      )}
+                      {decoded.functionName === 'processRequest' && (
+                        <>
+                          <div>
+                            <p className="text-sm text-gray-400">Layer2</p>
+                            <p className="font-mono text-xs break-all">{decoded.args[0] as string}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-400">Receive as</p>
+                            <p className="font-mono text-sm">{decoded.args[1] ? 'TON' : 'WTON'}</p>
                           </div>
                         </>
                       )}
