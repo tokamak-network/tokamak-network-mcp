@@ -7,7 +7,7 @@ import { KNOWN_NETWORKS, KNOWN_TOKENS } from '../constants';
 import { ERRORS } from '../errors';
 import { getTokenAddress } from '../tokens';
 import { requestTransaction } from '../transaction';
-import { getAccount, getConnectionState, getNetwork } from '../ws';
+import { getConnectionState } from '../ws';
 
 export function registerErc20Tools(server: McpServer) {
   const getTokenBalanceSchema = {
@@ -46,8 +46,9 @@ export function registerErc20Tools(server: McpServer) {
           ],
         };
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: 'text' as const, text: (error as Error).message }],
+          content: [{ type: 'text' as const, text: message }],
           isError: true,
         };
       }
@@ -77,8 +78,9 @@ export function registerErc20Tools(server: McpServer) {
     },
     async (args: z.infer<z.ZodObject<typeof approveTokenSchema>>) => {
       try {
-        const account = getAccount();
-        const network = args.network ?? getNetwork() ?? 'mainnet';
+        const { connected, address: account, network: connectedNetwork } = getConnectionState();
+        if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
+        const network = args.network ?? connectedNetwork;
 
         // Get token address
         let tokenAddress: Address;
@@ -119,8 +121,9 @@ export function registerErc20Tools(server: McpServer) {
           ],
         };
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: 'text' as const, text: (error as Error).message }],
+          content: [{ type: 'text' as const, text: message }],
           isError: true,
         };
       }

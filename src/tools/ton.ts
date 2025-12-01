@@ -33,6 +33,10 @@ export function registerTonTools(server: McpServer) {
 
         const tonAddress = getTokenAddress('TON', network);
         const wtonAddress = getTokenAddress('WTON', network);
+        if (!tonAddress || !wtonAddress) {
+          throw new Error(ERRORS.TOKEN_NOT_CONFIGURED('TON/WTON', network));
+        }
+
         const { allowance, formatted: formattedAllowance } = await getAllowance({
           token: tonAddress,
           account,
@@ -63,8 +67,9 @@ export function registerTonTools(server: McpServer) {
           ],
         };
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: 'text' as const, text: (error as Error).message }],
+          content: [{ type: 'text' as const, text: message }],
           isError: true,
         };
       }
