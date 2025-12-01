@@ -1,6 +1,6 @@
 import type { Address, Hex } from 'viem';
-import { ERRORS } from './errors.js';
-import { getAccount, getWsClient } from './ws.js';
+import { ERRORS } from './errors';
+import { getAccount, getWsClient } from './ws';
 
 type TransactionData = {
   to: Address;

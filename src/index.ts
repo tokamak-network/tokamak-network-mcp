@@ -1,6 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { registerErc20Tools, registerTonTools, registerWalletTools } from './tools';
+import {
+  registerErc20Tools,
+  registerStakeTools,
+  registerTonTools,
+  registerWalletTools,
+} from './tools';
 import { startServer } from './ws';
 
 const PORT = 3000;
@@ -19,6 +24,7 @@ const server = new McpServer({
 registerTonTools(server);
 registerWalletTools(server);
 registerErc20Tools(server);
+registerStakeTools(server);
 
 // Handle shutdown
 process.on('SIGINT', () => {

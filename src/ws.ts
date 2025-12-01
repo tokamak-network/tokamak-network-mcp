@@ -3,8 +3,8 @@ import { staticPlugin } from '@elysiajs/static';
 import { Elysia } from 'elysia';
 import open from 'open';
 import type { Address, Hash, Hex } from 'viem';
-import type { KnownNetwork } from './constants.js';
-import { ERRORS } from './errors.js';
+import type { KnownNetwork } from './constants';
+import { ERRORS } from './errors';
 
 const projectRoot = path.resolve(import.meta.dir, '..');
 const frontendDist = path.join(projectRoot, 'frontend', 'dist');

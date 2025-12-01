@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAccount, useSendTransaction, useChainId } from 'wagmi';
 import { useWebSocket } from './hooks/useWebSocket';
-import { formatEther, formatUnits, decodeFunctionData, parseAbi } from 'viem';
+import { formatEther, formatUnits, decodeFunctionData, decodeAbiParameters, parseAbi } from 'viem';
 
 // 지원하는 함수들의 ABI
 const SUPPORTED_ABI = parseAbi([
   'function swapFromTON(uint256 tonAmount)',
   'function approve(address spender, uint256 amount)',
+  'function approveAndCall(address spender, uint256 amount, bytes data)',
 ]);
 
 function decodeCalldata(data: string) {
@@ -194,6 +195,43 @@ function App() {
                           </div>
                         </>
                       )}
+                      {decoded.functionName === 'approveAndCall' && (() => {
+                        const [spender, amount, innerData] = decoded.args as [string, bigint, string];
+                        let depositManager = '';
+                        let layer2 = '';
+                        try {
+                          const innerDecoded = decodeAbiParameters(
+                            [{ type: 'address' }, { type: 'address' }],
+                            innerData as `0x${string}`,
+                          );
+                          depositManager = innerDecoded[0] as string;
+                          layer2 = innerDecoded[1] as string;
+                        } catch {}
+                        return (
+                          <>
+                            <div>
+                              <p className="text-sm text-gray-400">Amount</p>
+                              <p className="font-mono text-sm">{formatUnits(amount, 18)} TON</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-400">WTON Contract</p>
+                              <p className="font-mono text-xs break-all">{spender}</p>
+                            </div>
+                            {depositManager && (
+                              <div>
+                                <p className="text-sm text-gray-400">Deposit Manager</p>
+                                <p className="font-mono text-xs break-all">{depositManager}</p>
+                              </div>
+                            )}
+                            {layer2 && (
+                              <div>
+                                <p className="text-sm text-gray-400">Layer2</p>
+                                <p className="font-mono text-xs break-all">{layer2}</p>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   );
                 }

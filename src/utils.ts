@@ -1,6 +1,6 @@
-import type { KnownToken } from './constants.js';
-import { KNOWN_TOKENS } from './constants.js';
-import { ERRORS } from './errors.js';
+import type { KnownToken } from './constants';
+import { CONTRACT_ADDRESSES, KNOWN_TOKENS } from './constants';
+import { ERRORS } from './errors';
 
 export function isKnownToken(token: string): token is KnownToken {
   return KNOWN_TOKENS.includes(token as KnownToken);
@@ -10,4 +10,10 @@ export function getChainIdByName(name: string): 1 | 11155111 {
   if (name === 'mainnet') return 1;
   if (name === 'sepolia') return 11155111;
   throw new Error(ERRORS.UNKNOWN_NETWORK(name));
+}
+
+export function getNetworkAddresses(network: string) {
+  return (
+    CONTRACT_ADDRESSES[network as keyof typeof CONTRACT_ADDRESSES] || CONTRACT_ADDRESSES.mainnet
+  );
 }

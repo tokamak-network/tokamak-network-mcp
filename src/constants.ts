@@ -1,3 +1,5 @@
+import type { Address } from 'viem';
+
 export const KNOWN_NETWORKS = ['mainnet', 'sepolia'] as const;
 export type KnownNetwork = (typeof KNOWN_NETWORKS)[number];
 
@@ -13,5 +15,28 @@ export const TOKEN_ADDRESSES: Record<string, Record<number, `0x${string}`>> = {
   WTON: {
     1: '0xc4A11aaf6ea915Ed7Ac194161d2fC9384F15bff2',
     11155111: '0x79e0d92670106c85e9067b56b8f674340dca0bbd',
+  },
+};
+
+export const CONTRACT_ADDRESSES = {
+  mainnet: {
+    DEPOSIT_MANAGER: '0x0b58ca72b12f01fc05f8f252e226f3e2089bd00e' as Address,
+    SEIG_MANAGER: '0x0b55a0f463b6defb81c6063973763951712d0e5f' as Address,
+    LAYER2_REGISTRY: '0x7846c2248a7b4de77e9c2bae7fbb93bfc286837b' as Address,
+    SWAPPROXY: '0x30e65B3A6e6868F044944Aa0e9C5d52F8dcb138d' as Address,
+    L1BRIDGE_REGISTRY: '0x39d43281A4A5e922AB0DCf89825D73273D8C5BA4' as Address,
+    LAYER2_MANAGER: '0xD6Bf6B2b7553c8064Ba763AD6989829060FdFC1D' as Address,
+    DAO_COMMITTEE: '0xDD9f0cCc044B0781289Ee318e5971b0139602C26' as Address,
+    AGENDA_MANAGER: '0xcD4421d082752f363E1687544a09d5112cD4f484' as Address,
+  },
+  sepolia: {
+    DEPOSIT_MANAGER: '0x90ffcc7F168DceDBEF1Cb6c6eB00cA73F922956F' as Address,
+    SEIG_MANAGER: '0x2320542ae933FbAdf8f5B97cA348c7CeDA90fAd7' as Address,
+    LAYER2_REGISTRY: '0xA0a9576b437E52114aDA8b0BC4149F2F5c604581' as Address,
+    SWAPPROXY: '0x690f994b82f001059e24d79292c3c476854b767a' as Address,
+    L1BRIDGE_REGISTRY: '0x2D47fa57101203855b336e9E61BC9da0A6dd0Dbc' as Address,
+    LAYER2_MANAGER: '0x58B4C2FEf19f5CDdd944AadD8DC99cCC71bfeFDc' as Address,
+    DAO_COMMITTEE: '0xA2101482b28E3D99ff6ced517bA41EFf4971a386' as Address,
+    AGENDA_MANAGER: '0x1444f7a8bC26a3c9001a13271D56d6fF36B44f08' as Address,
   },
 };

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DEFAULT_NETWORK, KNOWN_NETWORKS, KNOWN_TOKENS } from './constants.js';
+import { DEFAULT_NETWORK, KNOWN_NETWORKS, KNOWN_TOKENS } from './constants';
 
 export const NETWORK_SCHEMA = z
   .enum(KNOWN_NETWORKS)

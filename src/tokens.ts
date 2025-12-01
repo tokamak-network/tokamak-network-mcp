@@ -1,8 +1,8 @@
 import type { Address } from 'viem';
-import type { KnownNetwork, KnownToken } from './constants.js';
-import { TOKEN_ADDRESSES } from './constants.js';
-import { ERRORS } from './errors.js';
-import { getChainIdByName } from './utils.js';
+import type { KnownNetwork, KnownToken } from './constants';
+import { TOKEN_ADDRESSES } from './constants';
+import { ERRORS } from './errors';
+import { getChainIdByName } from './utils';
 
 export function getTokenAddress(token: KnownToken, network: KnownNetwork): Address;
 export function getTokenAddress(token: 'ETH', network: KnownNetwork): null;
