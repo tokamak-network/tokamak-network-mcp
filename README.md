@@ -1,48 +1,48 @@
-# Tokamak Network MCP Server
+# Tokamak Network MCP Server(EN)
 
-Tokamak Network의 TON 토큰 스테이킹을 위한 MCP(Model Context Protocol) 서버입니다.
+An MCP (Model Context Protocol) server for TON token staking on Tokamak Network.
 
-## 주요 기능
+## Features
 
-- **지갑 연결**: 브라우저 기반 지갑 연결 (MetaMask 등)
-- **토큰 관리**: TON/WTON 잔액 조회 및 래핑
-- **스테이킹**: Layer2 오퍼레이터에 TON 스테이킹
-- **언스테이킹**: 스테이킹 해제 요청
-- **출금**: 언스테이킹된 토큰 출금
+- **Wallet Connection**: Browser-based wallet connection (MetaMask, etc.)
+- **Token Management**: Check TON/WTON balance and wrapping
+- **Staking**: Stake TON to Layer2 operators
+- **Unstaking**: Request staking withdrawal
+- **Withdrawal**: Withdraw unstaked tokens
 
-## 지원 네트워크
+## Supported Networks
 
-| 네트워크 | Chain ID |
+| Network | Chain ID |
 |---------|----------|
 | Ethereum Mainnet | 1 |
 | Sepolia Testnet | 11155111 |
 
-## 설치
+## Installation
 
 ```bash
 bun install
 ```
 
-## 실행
+## Running
 
-### 개발 모드
+### Development Mode
 
 ```bash
 bun run dev
 ```
 
-### 프로덕션 빌드
+### Production Build
 
 ```bash
 bun run build
 bun run start
 ```
 
-## MCP 서버 설정
+## MCP Server Configuration
 
 ### Claude Desktop
 
-`claude_desktop_config.json` 파일에 다음을 추가하세요:
+Add the following to your `claude_desktop_config.json` file:
 
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
@@ -60,7 +60,7 @@ bun run start
 
 ### Claude Code
 
-`.mcp.json` 파일에 다음을 추가하세요:
+Add the following to your `.mcp.json` file:
 
 ```json
 {
@@ -75,7 +75,7 @@ bun run start
 
 ### Gemini CLI
 
-`~/.gemini/settings.json` (전역) 또는 `.gemini/settings.json` (프로젝트) 파일에 다음을 추가하세요:
+Add the following to `~/.gemini/settings.json` (global) or `.gemini/settings.json` (project):
 
 ```json
 {
@@ -88,7 +88,7 @@ bun run start
 }
 ```
 
-또는 CLI 명령어로 추가:
+Or add via CLI command:
 
 ```bash
 gemini mcp add tokamak-network -- bun run /path/to/tokamak-network-mcp/src/index.ts
@@ -96,7 +96,7 @@ gemini mcp add tokamak-network -- bun run /path/to/tokamak-network-mcp/src/index
 
 ### OpenAI Codex
 
-`~/.codex/config.toml` 파일에 다음을 추가하세요:
+Add the following to your `~/.codex/config.toml` file:
 
 ```toml
 [mcp_servers.tokamak-network]
@@ -104,45 +104,45 @@ command = "bun"
 args = ["run", "/path/to/tokamak-network-mcp/src/index.ts"]
 ```
 
-또는 CLI 명령어로 추가:
+Or add via CLI command:
 
 ```bash
 codex mcp add tokamak-network -- bun run /path/to/tokamak-network-mcp/src/index.ts
 ```
 
-## MCP 도구 목록
+## MCP Tools
 
-### 지갑
+### Wallet
 
-| 도구명 | 설명 |
-|-------|-----|
-| `connect_wallet` | 브라우저를 열어 지갑 연결 |
-| `get_wallet_address` | 연결된 지갑 주소 조회 |
+| Tool | Description |
+|------|-------------|
+| `connect_wallet` | Open browser to connect wallet |
+| `get_wallet_address` | Get connected wallet address |
 
-### 토큰
+### Token
 
-| 도구명 | 설명 |
-|-------|-----|
-| `get_token_balance` | TON, WTON 또는 ERC20 토큰 잔액 조회 |
-| `approve_token` | 토큰 사용 승인 |
-| `wrap-ton` | TON을 WTON으로 래핑 |
+| Tool | Description |
+|------|-------------|
+| `get_token_balance` | Get TON, WTON or ERC20 token balance |
+| `approve_token` | Approve token spending |
+| `wrap-ton` | Wrap TON to WTON |
 
-### 스테이킹
+### Staking
 
-| 도구명 | 설명 |
-|-------|-----|
-| `stake-ton` | TON을 Layer2 오퍼레이터에 스테이킹 |
-| `get-staked-ton-balance` | 스테이킹된 TON 잔액 조회 |
-| `unstake-ton` | 스테이킹 해제 요청 |
+| Tool | Description |
+|------|-------------|
+| `stake-ton` | Stake TON to Layer2 operator |
+| `get-staked-ton-balance` | Get staked TON balance |
+| `unstake-ton` | Request unstaking |
 
-### 출금
+### Withdrawal
 
-| 도구명 | 설명 |
-|-------|-----|
-| `get-pending-withdrawal` | 대기 중인 출금 요청 조회 |
-| `withdraw-ton` | 출금 요청 처리 |
+| Tool | Description |
+|------|-------------|
+| `get-pending-withdrawal` | Get pending withdrawal requests |
+| `withdraw-ton` | Process withdrawal request |
 
-## Layer2 오퍼레이터
+## Layer2 Operators
 
 ### Mainnet
 
@@ -162,16 +162,16 @@ codex mcp add tokamak-network -- bun run /path/to/tokamak-network-mcp/src/index.
 - TokamakOperator_v2
 - poseidon
 
-## 사용 예시
+## Usage Example
 
 ```
-1. connect_wallet 도구로 지갑 연결
-2. get_token_balance 도구로 TON 잔액 확인
-3. stake-ton 도구로 원하는 오퍼레이터에 스테이킹
-4. get-staked-ton-balance 도구로 스테이킹 잔액 확인
+1. Connect wallet using connect_wallet tool
+2. Check TON balance using get_token_balance tool
+3. Stake to desired operator using stake-ton tool
+4. Check staked balance using get-staked-ton-balance tool
 ```
 
-## 기술 스택
+## Tech Stack
 
 - **Runtime**: Bun
 - **MCP SDK**: @modelcontextprotocol/sdk
@@ -179,6 +179,6 @@ codex mcp add tokamak-network -- bun run /path/to/tokamak-network-mcp/src/index.
 - **Web Server**: Elysia
 - **Validation**: Zod
 
-## 라이선스
+## License
 
 MIT
