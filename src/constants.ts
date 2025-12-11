@@ -4,7 +4,7 @@ export const KNOWN_NETWORKS = ['mainnet', 'sepolia'] as const;
 export type KnownNetwork = (typeof KNOWN_NETWORKS)[number];
 
 export const DEFAULT_NETWORK = 'mainnet';
-export const KNOWN_TOKENS = [DEFAULT_NETWORK, 'TON', 'WTON'] as const;
+export const KNOWN_TOKENS = ['TON', 'WTON'] as const;
 export type KnownToken = (typeof KNOWN_TOKENS)[number];
 
 export const TOKEN_ADDRESSES: Record<string, Record<number, `0x${string}`>> = {

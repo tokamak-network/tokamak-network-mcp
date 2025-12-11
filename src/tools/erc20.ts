@@ -12,16 +12,16 @@ import { getConnectionState } from '../ws';
 export function registerErc20Tools(server: McpServer) {
   const getTokenBalanceSchema = {
     token: z
-      .string()
+      .enum(KNOWN_TOKENS)
       .optional()
       .default('TON')
-      .describe(`Token symbol (${KNOWN_TOKENS.join(', ')}) or contract address (0x...)`),
+      .describe(`Token symbol (${KNOWN_TOKENS.join(', ')})`),
   };
 
   server.registerTool(
     'get_token_balance',
     {
-      description: `Get token balance. Supports ${KNOWN_TOKENS.join(', ')} or any ERC20 token by contract address.`,
+      description: `Get token balance. Supports ${KNOWN_TOKENS.join(', ')}.`,
       inputSchema: getTokenBalanceSchema,
     },
     async (args: z.infer<z.ZodObject<typeof getTokenBalanceSchema>>) => {
@@ -56,9 +56,7 @@ export function registerErc20Tools(server: McpServer) {
   );
 
   const approveTokenSchema = {
-    token: z
-      .string()
-      .describe(`Token symbol (${KNOWN_TOKENS.join(', ')}) or contract address (0x...)`),
+    token: z.enum(KNOWN_TOKENS).describe(`Token symbol (${KNOWN_TOKENS.join(', ')})`),
     spender: z
       .custom<Address>((v) => typeof v === 'string' && isAddress(v))
       .describe('Address to approve'),
@@ -82,16 +80,9 @@ export function registerErc20Tools(server: McpServer) {
         if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
         const network = args.network ?? connectedNetwork;
 
-        // Get token address
-        let tokenAddress: Address;
-        if (args.token.startsWith('0x')) {
-          tokenAddress = args.token as Address;
-        } else {
-          const addr = getTokenAddress(args.token, network);
-          if (!addr) {
-            throw new Error(ERRORS.TOKEN_NOT_CONFIGURED(args.token, network));
-          }
-          tokenAddress = addr;
+        const tokenAddress = getTokenAddress(args.token, network);
+        if (!tokenAddress) {
+          throw new Error(ERRORS.TOKEN_NOT_CONFIGURED(args.token, network));
         }
 
         // Get decimals for the token
