@@ -8,12 +8,13 @@ import {
   registerWalletTools,
   registerWithdrawTools,
 } from './tools';
-import { startServer } from './ws';
+import { openBrowser, startServer } from './ws';
 
 const PORT = 3000;
 
-// Start dashboard
+// Start dashboard and open browser
 startServer(PORT);
+openBrowser();
 
 // Create MCP server
 const server = new McpServer({
