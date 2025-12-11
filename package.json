@@ -10,7 +10,9 @@
     "build:frontend": "bun run --cwd frontend build",
     "build:all": "bun run build && bun run build:frontend",
     "start": "bun run dist/index.js",
-    "dev:frontend": "bun run --cwd frontend dev"
+    "dev:frontend": "bun run --cwd frontend dev",
+    "setting:claude": "bun run build:all && bun run scripts/setup-mcp.ts claude",
+    "setting:gemini": "bun run build:all && bun run scripts/setup-mcp.ts gemini"
   },
   "dependencies": {
     "@elysiajs/static": "^1.0.0",
