@@ -24,7 +24,7 @@ export function registerTonTools(server: McpServer) {
         if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
 
         const { balance, formatted, decimals } = await getTokenBalance({
-          tokenNameOrAddress: 'TON',
+          token: 'TON',
           network,
           account,
         });
@@ -38,7 +38,7 @@ export function registerTonTools(server: McpServer) {
         }
 
         const { allowance, formatted: formattedAllowance } = await getAllowance({
-          token: tonAddress,
+          token: 'TON',
           account,
           spender: wtonAddress,
           network,

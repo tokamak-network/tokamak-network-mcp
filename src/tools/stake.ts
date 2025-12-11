@@ -92,7 +92,7 @@ export function registerStakeTools(server: McpServer) {
         const networkAddresses = getNetworkAddresses(network);
 
         const { balance, formatted, decimals } = await getTokenBalance({
-          tokenNameOrAddress: 'TON',
+          token: 'TON',
           network,
           account,
         });

@@ -18,6 +18,11 @@ export const TOKEN_ADDRESSES: Record<string, Record<number, `0x${string}`>> = {
   },
 };
 
+export const TOKEN_DECIMALS: Record<KnownToken, number> = {
+  TON: 18,
+  WTON: 27,
+};
+
 export const CONTRACT_ADDRESSES = {
   mainnet: {
     DEPOSIT_MANAGER: '0x0b58ca72b12f01fc05f8f252e226f3e2089bd00e' as Address,

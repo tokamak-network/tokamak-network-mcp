@@ -1,5 +1,6 @@
 import type { Address } from 'viem';
-import { createPublicClient, formatEther, formatUnits, http, isAddress } from 'viem';
+import { createPublicClient, formatUnits, http } from 'viem';
+import { TOKEN_DECIMALS } from '../constants';
 import { ERRORS } from '../errors';
 import { getTokenAddress } from '../tokens';
 import { getChainById, getChainIdByName, isKnownToken } from '../utils';
@@ -10,13 +11,6 @@ const ERC20_ABI = [
     inputs: [{ name: 'account', type: 'address' }],
     name: 'balanceOf',
     outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'decimals',
-    outputs: [{ name: '', type: 'uint8' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -48,6 +42,10 @@ export async function getAllowance({
     throw new Error(ERRORS.NO_WALLET_CONNECTED);
   }
 
+  if (!isKnownToken(token)) {
+    throw new Error(ERRORS.UNKNOWN_TOKEN(token));
+  }
+
   const networkChainId = getChainIdByName(network ?? getNetwork() ?? 'mainnet');
   const chain = getChainById(networkChainId);
   const client = createPublicClient({
@@ -55,31 +53,17 @@ export async function getAllowance({
     transport: http(),
   });
 
-  let tokenAddress: Address;
-  if (isKnownToken(token)) {
-    const addr = getTokenAddress(token, getNetwork() ?? 'mainnet');
-    if (!addr) throw new Error(ERRORS.TOKEN_NOT_CONFIGURED(token, network ?? 'mainnet'));
+  const tokenAddress = getTokenAddress(token, getNetwork() ?? 'mainnet');
+  if (!tokenAddress) throw new Error(ERRORS.TOKEN_NOT_CONFIGURED(token, network ?? 'mainnet'));
 
-    tokenAddress = addr;
-  } else if (token.startsWith('0x')) {
-    tokenAddress = token as Address;
-  } else {
-    throw new Error(ERRORS.UNKNOWN_TOKEN(token));
-  }
+  const decimals = TOKEN_DECIMALS[token];
 
-  const [allowance, decimals] = await Promise.all([
-    client.readContract({
-      address: tokenAddress,
-      abi: ERC20_ABI,
-      functionName: 'allowance',
-      args: [account, spender],
-    }),
-    client.readContract({
-      address: tokenAddress,
-      abi: ERC20_ABI,
-      functionName: 'decimals',
-    }),
-  ]);
+  const allowance = await client.readContract({
+    address: tokenAddress,
+    abi: ERC20_ABI,
+    functionName: 'allowance',
+    args: [account, spender],
+  });
 
   return {
     allowance,
@@ -89,68 +73,42 @@ export async function getAllowance({
 }
 
 export async function getTokenBalance({
-  tokenNameOrAddress,
+  token,
   account,
   network,
 }: {
-  tokenNameOrAddress: Address | string;
+  token: string;
   account: Address;
   network: string;
 }): Promise<{ balance: bigint; formatted: string; decimals: number; symbol: string }> {
+  if (!isKnownToken(token)) {
+    throw new Error(ERRORS.UNKNOWN_TOKEN(token));
+  }
+
   const chain = getChainById(getChainIdByName(network));
   const client = createPublicClient({
     chain,
     transport: http(),
   });
 
-  if (tokenNameOrAddress === 'ETH') {
-    const balance = await client.getBalance({
-      address: account,
-    });
-    return {
-      balance,
-      formatted: formatEther(balance),
-      decimals: 18,
-      symbol: 'ETH',
-    };
+  const tokenAddress = getTokenAddress(token, getNetwork() ?? 'mainnet');
+  if (!tokenAddress) {
+    throw new Error(ERRORS.TOKEN_NOT_CONFIGURED(token, network ?? 'mainnet'));
   }
 
-  let tokenAddress: Address;
-  if (isKnownToken(tokenNameOrAddress)) {
-    const addr = getTokenAddress(tokenNameOrAddress, getNetwork() ?? 'mainnet');
-    if (!addr) {
-      throw new Error(ERRORS.TOKEN_NOT_CONFIGURED(tokenNameOrAddress, network ?? 'mainnet'));
-    }
-    tokenAddress = addr;
-  } else if (isAddress(tokenNameOrAddress)) {
-    tokenAddress = tokenNameOrAddress;
-  } else {
-    throw new Error(ERRORS.UNKNOWN_TOKEN(tokenNameOrAddress));
-  }
+  const decimals = TOKEN_DECIMALS[token];
 
-  const [balance, decimals] = await client.multicall({
-    contracts: [
-      {
-        address: tokenAddress,
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: [account],
-      },
-      {
-        address: tokenAddress,
-        abi: ERC20_ABI,
-        functionName: 'decimals',
-      },
-    ],
-    allowFailure: false,
+  const balance = await client.readContract({
+    address: tokenAddress,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: [account],
   });
 
   return {
-    balance: balance,
+    balance,
     formatted: formatUnits(balance, decimals),
     decimals,
-    symbol: isKnownToken(tokenNameOrAddress)
-      ? tokenNameOrAddress
-      : `${tokenAddress.slice(0, 10)}...`,
+    symbol: token,
   };
 }

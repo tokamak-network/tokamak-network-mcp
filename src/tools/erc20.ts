@@ -32,7 +32,7 @@ export function registerErc20Tools(server: McpServer) {
         }
 
         const { formatted, symbol } = await getTokenBalance({
-          tokenNameOrAddress: args.token,
+          token: args.token,
           account: address,
           network,
         });
@@ -85,9 +85,8 @@ export function registerErc20Tools(server: McpServer) {
           throw new Error(ERRORS.TOKEN_NOT_CONFIGURED(args.token, network));
         }
 
-        // Get decimals for the token
         const { decimals } = await getTokenBalance({
-          tokenNameOrAddress: args.token,
+          token: args.token,
           account,
           network,
         });
@@ -147,7 +146,7 @@ export function registerErc20Tools(server: McpServer) {
         }
 
         const { balance, formatted, decimals } = await getTokenBalance({
-          tokenNameOrAddress: args.token,
+          token: args.token,
           account,
           network,
         });
