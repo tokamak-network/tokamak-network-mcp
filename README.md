@@ -1,4 +1,4 @@
-# Tokamak Network MCP Server(EN)
+# Tokamak Network MCP Server
 
 An MCP (Model Context Protocol) server for TON token staking on Tokamak Network.
 
