@@ -1,9 +1,8 @@
 import type { Address } from 'viem';
 import { createPublicClient, formatEther, formatUnits, http, isAddress } from 'viem';
-import { mainnet, sepolia } from 'viem/chains';
 import { ERRORS } from '../errors';
 import { getTokenAddress } from '../tokens';
-import { isKnownToken } from '../utils';
+import { getChainById, getChainIdByName, isKnownToken } from '../utils';
 import { getAccount, getNetwork } from '../ws';
 
 const ERC20_ABI = [
@@ -33,18 +32,6 @@ const ERC20_ABI = [
   },
 ] as const;
 
-function getChainIdByName(name: string): number {
-  if (name === 'mainnet') return 1;
-  if (name === 'sepolia') return 11155111;
-  throw new Error(ERRORS.UNKNOWN_NETWORK(name));
-}
-
-function getChain(id: number) {
-  if (id === 1) return mainnet;
-  if (id === 11155111) return sepolia;
-  throw new Error(ERRORS.UNSUPPORTED_CHAIN(id));
-}
-
 export async function getAllowance({
   token,
   account,
@@ -62,7 +49,7 @@ export async function getAllowance({
   }
 
   const networkChainId = getChainIdByName(network ?? getNetwork() ?? 'mainnet');
-  const chain = getChain(networkChainId);
+  const chain = getChainById(networkChainId);
   const client = createPublicClient({
     chain,
     transport: http(),
@@ -110,7 +97,7 @@ export async function getTokenBalance({
   account: Address;
   network: string;
 }): Promise<{ balance: bigint; formatted: string; decimals: number; symbol: string }> {
-  const chain = getChain(getChainIdByName(network));
+  const chain = getChainById(getChainIdByName(network));
   const client = createPublicClient({
     chain,
     transport: http(),

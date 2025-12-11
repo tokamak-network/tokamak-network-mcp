@@ -1,13 +1,6 @@
 import type { Address } from 'viem';
 import { createPublicClient, http, parseAbi } from 'viem';
-import { mainnet, sepolia } from 'viem/chains';
-import { ERRORS } from '../errors';
-
-function getChain(network: string) {
-  if (network === 'mainnet') return mainnet;
-  if (network === 'sepolia') return sepolia;
-  throw new Error(ERRORS.UNKNOWN_NETWORK(network));
-}
+import { getChainByName } from '../utils';
 
 export interface WithdrawalRequest {
   withdrawableBlockNumber: bigint;
@@ -32,7 +25,7 @@ export async function getPendingWithdrawalRequests({
   account: Address;
   network: string;
 }): Promise<WithdrawalRequest[]> {
-  const chain = getChain(network);
+  const chain = getChainByName(network);
   const client = createPublicClient({
     chain,
     transport: http(),
@@ -82,7 +75,7 @@ export async function getPendingWithdrawalRequests({
 }
 
 export async function getCurrentBlockNumber(network: string): Promise<bigint> {
-  const chain = getChain(network);
+  const chain = getChainByName(network);
   const client = createPublicClient({
     chain,
     transport: http(),

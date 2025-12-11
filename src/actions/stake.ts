@@ -1,22 +1,7 @@
 import type { Address } from 'viem';
-import { createPublicClient, formatEther, formatUnits, http, isAddress, parseAbi } from 'viem';
-import { mainnet, sepolia } from 'viem/chains';
+import { createPublicClient, http, parseAbi } from 'viem';
 import { ERRORS } from '../errors';
-import { getTokenAddress } from '../tokens';
-import { isKnownToken } from '../utils';
-import { getAccount, getNetwork } from '../ws';
-
-function getChainIdByName(name: string): number {
-  if (name === 'mainnet') return 1;
-  if (name === 'sepolia') return 11155111;
-  throw new Error(ERRORS.UNKNOWN_NETWORK(name));
-}
-
-function getChain(id: number) {
-  if (id === 1) return mainnet;
-  if (id === 11155111) return sepolia;
-  throw new Error(ERRORS.UNSUPPORTED_CHAIN(id));
-}
+import { getChainByName } from '../utils';
 
 export async function getStakedBalance({
   seigManager,
@@ -29,7 +14,7 @@ export async function getStakedBalance({
   network: string;
   operator: Address;
 }) {
-  const chain = getChain(getChainIdByName(network));
+  const chain = getChainByName(network);
   const client = createPublicClient({
     chain,
     transport: http(),
