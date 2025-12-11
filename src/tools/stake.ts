@@ -8,19 +8,19 @@ import {
   parseUnits,
 } from 'viem';
 import { z } from 'zod';
-import { getStakedBalance, getTokenBalance, resolveLayer2Address } from '../actions';
+import { getLayer2Address, getStakedBalance, getTokenBalance } from '../actions';
+import { KNOWN_LAYER2_MAINNET, KNOWN_LAYER2_SEPOLIA } from '../constants';
 import { ERRORS } from '../errors';
 import { getTokenAddress } from '../tokens';
 import { requestTransaction } from '../transaction';
 import { getNetworkAddresses } from '../utils';
 import { getConnectionState } from '../ws';
 
+const KNOWN_LAYER2 = [...KNOWN_LAYER2_MAINNET, ...KNOWN_LAYER2_SEPOLIA] as const;
+
 export function registerStakeTools(server: McpServer) {
   const stakedTonSchema = {
-    layer2Identifier: z
-      .string()
-      .toLowerCase()
-      .describe("The Layer2 identifier(Operator's name or address)"),
+    layer2: z.enum(KNOWN_LAYER2).describe(`Layer2 operator name (${KNOWN_LAYER2.join(', ')})`),
   };
   server.registerTool(
     'get-staked-ton-balance',
@@ -34,12 +34,7 @@ export function registerStakeTools(server: McpServer) {
         const { connected, address: account, network } = getConnectionState();
         if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
 
-        const targetAddress = resolveLayer2Address(args.layer2Identifier.toLowerCase(), network);
-        if (!targetAddress)
-          throw new Error(
-            ERRORS.LAYER2_NOT_CONFIGURED(args.layer2Identifier.toLowerCase(), network),
-          );
-
+        const targetAddress = getLayer2Address(args.layer2, network);
         const networkAddresses = getNetworkAddresses(network);
         const stakedAmount = formatUnits(
           await getStakedBalance({
@@ -55,7 +50,7 @@ export function registerStakeTools(server: McpServer) {
           content: [
             {
               type: 'text' as const,
-              text: `Staked TON balance to ${args.layer2Identifier} on ${network}: ${stakedAmount}`,
+              text: `Staked TON balance to ${args.layer2} on ${network}: ${stakedAmount}`,
             },
           ],
         };
@@ -71,7 +66,7 @@ export function registerStakeTools(server: McpServer) {
 
   const stakeTonSchema = {
     tokenAmount: z.string().describe('The amount of tokens to stake'),
-    layer2Identifier: z.string().describe("The Layer2 identifier(Operator's name or address)"),
+    layer2: z.enum(KNOWN_LAYER2).describe(`Layer2 operator name (${KNOWN_LAYER2.join(', ')})`),
   };
   server.registerTool(
     'stake-ton',
@@ -85,10 +80,7 @@ export function registerStakeTools(server: McpServer) {
         const { connected, address: account, network } = getConnectionState();
         if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
 
-        const targetAddress = resolveLayer2Address(args.layer2Identifier, network);
-        if (!targetAddress)
-          throw new Error(ERRORS.LAYER2_NOT_CONFIGURED(args.layer2Identifier, network));
-
+        const targetAddress = getLayer2Address(args.layer2, network);
         const networkAddresses = getNetworkAddresses(network);
 
         const { balance, formatted, decimals } = await getTokenBalance({
@@ -128,7 +120,7 @@ export function registerStakeTools(server: McpServer) {
           content: [
             {
               type: 'text' as const,
-              text: `Sent request to stake ${args.tokenAmount} TON tokens to ${args.layer2Identifier} on ${network}`,
+              text: `Sent request to stake ${args.tokenAmount} TON tokens to ${args.layer2} on ${network}`,
             },
           ],
         };

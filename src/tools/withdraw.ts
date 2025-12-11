@@ -1,18 +1,18 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { encodeFunctionData, formatUnits, parseAbi } from 'viem';
 import { z } from 'zod';
-import { getCurrentBlockNumber, getPendingWithdrawalRequests, resolveLayer2Address } from '../actions';
+import { getCurrentBlockNumber, getLayer2Address, getPendingWithdrawalRequests } from '../actions';
+import { KNOWN_LAYER2_MAINNET, KNOWN_LAYER2_SEPOLIA } from '../constants';
 import { ERRORS } from '../errors';
 import { requestTransaction } from '../transaction';
 import { getNetworkAddresses } from '../utils';
 import { getConnectionState } from '../ws';
 
+const KNOWN_LAYER2 = [...KNOWN_LAYER2_MAINNET, ...KNOWN_LAYER2_SEPOLIA] as const;
+
 export function registerWithdrawTools(server: McpServer) {
   const pendingWithdrawalSchema = {
-    layer2Identifier: z
-      .string()
-      .toLowerCase()
-      .describe("The Layer2 identifier (Operator's name or address)"),
+    layer2: z.enum(KNOWN_LAYER2).describe(`Layer2 operator name (${KNOWN_LAYER2.join(', ')})`),
   };
 
   server.registerTool(
@@ -27,10 +27,7 @@ export function registerWithdrawTools(server: McpServer) {
         const { connected, address: account, network } = getConnectionState();
         if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
 
-        const targetAddress = resolveLayer2Address(args.layer2Identifier, network);
-        if (!targetAddress)
-          throw new Error(ERRORS.LAYER2_NOT_CONFIGURED(args.layer2Identifier, network));
-
+        const targetAddress = getLayer2Address(args.layer2, network);
         const networkAddresses = getNetworkAddresses(network);
 
         const pendingRequests = await getPendingWithdrawalRequests({
@@ -45,7 +42,7 @@ export function registerWithdrawTools(server: McpServer) {
             content: [
               {
                 type: 'text' as const,
-                text: `No pending withdrawal requests from ${args.layer2Identifier} on ${network}`,
+                text: `No pending withdrawal requests from ${args.layer2} on ${network}`,
               },
             ],
           };
@@ -60,7 +57,7 @@ export function registerWithdrawTools(server: McpServer) {
           content: [
             {
               type: 'text' as const,
-              text: `Pending withdrawal requests from ${args.layer2Identifier} on ${network}:\n${JSON.stringify(formatted, null, 2)}`,
+              text: `Pending withdrawal requests from ${args.layer2} on ${network}:\n${JSON.stringify(formatted, null, 2)}`,
             },
           ],
         };
@@ -75,10 +72,7 @@ export function registerWithdrawTools(server: McpServer) {
   );
 
   const withdrawTonSchema = {
-    layer2Identifier: z
-      .string()
-      .toLowerCase()
-      .describe("The Layer2 identifier (Operator's name or address)"),
+    layer2: z.enum(KNOWN_LAYER2).describe(`Layer2 operator name (${KNOWN_LAYER2.join(', ')})`),
   };
 
   server.registerTool(
@@ -93,10 +87,7 @@ export function registerWithdrawTools(server: McpServer) {
         const { connected, address: account, network } = getConnectionState();
         if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
 
-        const targetAddress = resolveLayer2Address(args.layer2Identifier, network);
-        if (!targetAddress)
-          throw new Error(ERRORS.LAYER2_NOT_CONFIGURED(args.layer2Identifier, network));
-
+        const targetAddress = getLayer2Address(args.layer2, network);
         const networkAddresses = getNetworkAddresses(network);
 
         // Check if there are pending requests
@@ -111,7 +102,7 @@ export function registerWithdrawTools(server: McpServer) {
         ]);
 
         if (pendingRequests.length === 0) {
-          throw new Error(`No pending withdrawal requests from ${args.layer2Identifier} on ${network}`);
+          throw new Error(`No pending withdrawal requests from ${args.layer2} on ${network}`);
         }
 
         // Check if any request is withdrawable (current block >= withdrawableBlockNumber)
@@ -142,7 +133,7 @@ export function registerWithdrawTools(server: McpServer) {
           content: [
             {
               type: 'text' as const,
-              text: `Sent request to withdraw TON from ${args.layer2Identifier} on ${network}`,
+              text: `Sent request to withdraw TON from ${args.layer2} on ${network}`,
             },
           ],
         };
