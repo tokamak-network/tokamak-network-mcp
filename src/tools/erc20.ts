@@ -120,4 +120,69 @@ export function registerErc20Tools(server: McpServer) {
       }
     },
   );
+
+  const transferTokenSchema = {
+    token: z.enum(KNOWN_TOKENS).describe(`Token symbol (${KNOWN_TOKENS.join(', ')})`),
+    to: z
+      .custom<Address>((v) => typeof v === 'string' && isAddress(v))
+      .describe('Recipient address'),
+    amount: z.string().describe('Amount to transfer (in token units)'),
+  };
+
+  server.registerTool(
+    'transfer_token',
+    {
+      title: 'Transfer tokens',
+      description: 'Transfer tokens to a specified address',
+      inputSchema: transferTokenSchema,
+    },
+    async (args: z.infer<z.ZodObject<typeof transferTokenSchema>>) => {
+      try {
+        const { connected, address: account, network } = getConnectionState();
+        if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
+
+        const tokenAddress = getTokenAddress(args.token, network);
+        if (!tokenAddress) {
+          throw new Error(ERRORS.TOKEN_NOT_CONFIGURED(args.token, network));
+        }
+
+        const { balance, formatted, decimals } = await getTokenBalance({
+          tokenNameOrAddress: args.token,
+          account,
+          network,
+        });
+
+        const transferAmount = parseUnits(args.amount, decimals);
+        if (balance < transferAmount) {
+          throw new Error(ERRORS.INSUFFICIENT_BALANCE(formatted, args.token));
+        }
+
+        const data = encodeFunctionData({
+          abi: parseAbi(['function transfer(address to, uint256 amount) returns (bool)']),
+          functionName: 'transfer',
+          args: [args.to, transferAmount],
+        });
+
+        requestTransaction({
+          to: tokenAddress,
+          data,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Sent transfer ${args.amount} ${args.token} to ${args.to} on ${network}`,
+            },
+          ],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: 'text' as const, text: message }],
+          isError: true,
+        };
+      }
+    },
+  );
 }
