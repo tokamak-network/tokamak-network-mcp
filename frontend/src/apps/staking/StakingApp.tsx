@@ -12,6 +12,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
   const [selectedOperator, setSelectedOperator] = useState('');
   const [stakingTab, setStakingTab] = useState<'stake' | 'unstake'>('stake');
   const [withdrawalIndex, setWithdrawalIndex] = useState(0);
+  const [isOperatorDropdownOpen, setIsOperatorDropdownOpen] = useState(false);
 
   const {
     tonBalance,
@@ -199,18 +200,48 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                 {/* Operator Selection */}
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400 uppercase tracking-wide">Operator</label>
-                  <select
-                    value={selectedOperator}
-                    onChange={(e) => setSelectedOperator(e.target.value)}
-                    className="w-full bg-gray-900/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
-                  >
-                    <option value="" className="bg-gray-800">Select Operator</option>
-                    {OPERATORS[chainId === 1 ? 'mainnet' : 'sepolia'].map(op => (
-                      <option key={op.name} value={op.name} className="bg-gray-800">
-                        {op.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsOperatorDropdownOpen(!isOperatorDropdownOpen)}
+                      className="w-full bg-gray-900/50 border border-white/10 rounded-lg px-4 py-3 text-left text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer flex items-center justify-between"
+                    >
+                      <span className={selectedOperator ? 'text-white' : 'text-gray-500'}>
+                        {selectedOperator || 'Select Operator'}
+                      </span>
+                      <svg
+                        className={`w-4 h-4 text-gray-400 transition-transform ${isOperatorDropdownOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {isOperatorDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setIsOperatorDropdownOpen(false)} />
+                        <div className="absolute z-20 w-full mt-1 bg-gray-800 border border-white/10 rounded-lg shadow-xl overflow-hidden">
+                          {OPERATORS[chainId === 1 ? 'mainnet' : 'sepolia']
+                            .filter(op => op.name !== selectedOperator)
+                            .map(op => (
+                              <button
+                                key={op.name}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOperator(op.name);
+                                  setIsOperatorDropdownOpen(false);
+                                }}
+                                className="w-full px-4 py-3 text-left text-white hover:bg-gray-700/50 transition-colors"
+                              >
+                                {op.name}
+                              </button>
+                            ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {stakingTab === 'stake' ? (
