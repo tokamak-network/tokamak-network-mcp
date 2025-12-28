@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
-import { useAccount, useSendTransaction, useSwitchChain } from 'wagmi';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { useAccount, useSendTransaction, useSwitchChain, useReadContracts } from 'wagmi';
 import { formatEther, formatUnits, decodeAbiParameters } from 'viem';
 import type { PendingTransaction, Notification } from './types';
-import { getNetworkName, formatTime, decodeCalldata } from './utils';
+import { getNetworkName, formatTime, decodeCalldata, formatBalance } from './utils';
 import { useWebSocket } from './hooks';
 import { APPS } from './apps';
+import { CONTRACTS, ERC20_ABI } from './constants';
+import { LanguageContext, createTranslator, type Language } from './i18n';
 
 const STORAGE_KEY = 'tokamak_notifications';
+const LANG_STORAGE_KEY = 'tokamak_language';
 
 const loadNotifications = (): Notification[] => {
   try {
@@ -26,6 +29,29 @@ function App() {
   const { sendTransactionAsync } = useSendTransaction();
   const chainId = chain?.id;
   const { switchChain } = useSwitchChain();
+  const network = chainId === 1 ? 'mainnet' : 'sepolia';
+  const contracts = CONTRACTS[network];
+
+  // Fetch TON and WTON balances
+  const { data: balances, isLoading: balancesLoading } = useReadContracts({
+    contracts: [
+      {
+        address: contracts.TON as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`],
+      },
+      {
+        address: contracts.WTON as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`],
+      },
+    ],
+    query: { enabled: isConnected && !!address },
+  });
+  const tonBalance = balances?.[0]?.result as bigint | undefined;
+  const wtonBalance = balances?.[1]?.result as bigint | undefined;
   const prevChainIdRef = useRef<number | undefined>();
   const wsUrl = `ws://${window.location.host}/ws`;
   const { sendMessage, lastMessage, isConnected: wsConnected } = useWebSocket(wsUrl);
@@ -38,6 +64,16 @@ function App() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [openApps, setOpenApps] = useState<string[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [lang, setLang] = useState<Language>(() => {
+    const stored = localStorage.getItem(LANG_STORAGE_KEY);
+    return (stored === 'ko' || stored === 'en') ? stored : 'en';
+  });
+  const t = useMemo(() => createTranslator(lang), [lang]);
+
+  const handleSetLang = (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem(LANG_STORAGE_KEY, newLang);
+  };
   const txRequestRef = useRef<HTMLDivElement>(null);
   const notificationPanelRef = useRef<HTMLDivElement>(null);
   const networkMenuRef = useRef<HTMLDivElement>(null);
@@ -62,6 +98,28 @@ function App() {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
+
+  // Handle ESC key to close popups
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // Priority: Transaction modal > Dropdowns > About > App windows
+        if (pendingTx) {
+          handleReject();
+        } else if (showWalletMenu || showNetworkMenu || showNotifications) {
+          setShowWalletMenu(false);
+          setShowNetworkMenu(false);
+          setShowNotifications(false);
+        } else if (showAboutModal) {
+          setShowAboutModal(false);
+        } else if (openApps.length > 0) {
+          closeApp(openApps[openApps.length - 1]);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pendingTx, showWalletMenu, showNetworkMenu, showNotifications, showAboutModal, openApps]);
 
   // Save notifications to localStorage
   useEffect(() => {
@@ -177,6 +235,7 @@ function App() {
   };
 
   return (
+    <LanguageContext.Provider value={{ lang, setLang: handleSetLang, t }}>
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-macos-desktop">
       {/* macOS Menu Bar */}
       <div className="h-7 bg-black/20 backdrop-blur-2xl flex items-center justify-between px-4 text-white/90 text-[13px] font-medium shrink-0 relative z-50">
@@ -194,6 +253,23 @@ function App() {
 
         {/* Right side - System icons */}
         <div className="flex items-center gap-1">
+          {/* Token Balances */}
+          {isConnected && (
+            <div className="flex items-center gap-2 px-2 text-xs text-white/70">
+              {balancesLoading ? (
+                <div className="flex gap-2">
+                  <div className="w-16 h-4 bg-white/10 rounded animate-pulse" />
+                  <div className="w-16 h-4 bg-white/10 rounded animate-pulse" />
+                </div>
+              ) : (
+                <>
+                  <span>TON: <span className="text-white">{formatBalance(tonBalance, 18)}</span></span>
+                  <span className="text-white/30">|</span>
+                  <span>WTON: <span className="text-white">{formatBalance(wtonBalance, 27)}</span></span>
+                </>
+              )}
+            </div>
+          )}
           {/* Network Selector */}
           {isConnected && (
             <div className="relative">
@@ -305,6 +381,14 @@ function App() {
             )}
           </button>
 
+          {/* Language Toggle */}
+          <button
+            onClick={() => handleSetLang(lang === 'en' ? 'ko' : 'en')}
+            className="text-xs text-white/70 hover:text-white hover:bg-white/10 px-2 py-0.5 rounded transition-colors"
+          >
+            {lang === 'en' ? '한국어' : 'EN'}
+          </button>
+
           {/* Clock */}
           <span className="px-2">{formatTime(currentTime)}</span>
 
@@ -331,20 +415,20 @@ function App() {
                 className="absolute top-7 right-0 w-80 bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 overflow-hidden z-50"
               >
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                  <span className="text-sm font-medium">Notifications</span>
+                  <span className="text-sm font-medium">{t('notifications.title')}</span>
                   {notifications.length > 0 && (
                     <button
                       onClick={clearAllNotifications}
                       className="text-xs text-blue-400 hover:text-blue-300"
                     >
-                      Clear All
+                      {t('notifications.clearAll')}
                     </button>
                   )}
                 </div>
                 <div className="max-h-96 overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="px-4 py-8 text-center text-gray-500 text-sm">
-                      No notifications
+                      {t('notifications.noNotifications')}
                     </div>
                   ) : (
                     notifications.map(notification => (
@@ -398,7 +482,7 @@ function App() {
           {APPS.map(app => (
             <button
               key={app.id}
-              onDoubleClick={() => openApp(app.id)}
+              onClick={() => openApp(app.id)}
               className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/10 transition-colors group"
             >
               <div className="w-16 h-16 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl flex items-center justify-center shadow-lg border border-white/20 group-hover:scale-105 transition-transform">
@@ -426,7 +510,7 @@ function App() {
                     </svg>
                   </button>
                   <div className="flex-1 text-center">
-                    <span className="text-sm font-medium text-white/60">Transaction Request</span>
+                    <span className="text-sm font-medium text-white/60">{t('tx.title')}</span>
                   </div>
                   <div className="w-3" />
                 </div>
@@ -440,8 +524,8 @@ function App() {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-white">Sign Transaction</h3>
-                      <p className="text-sm text-gray-400">Review and confirm this transaction</p>
+                      <h3 className="text-lg font-semibold text-white">{t('tx.signTransaction')}</h3>
+                      <p className="text-sm text-gray-400">{t('tx.reviewConfirm')}</p>
                     </div>
                   </div>
 
@@ -564,14 +648,14 @@ function App() {
                       disabled={isSigning}
                       className="flex-1 px-4 py-2.5 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
                     >
-                      Cancel
+                      {t('tx.cancel')}
                     </button>
                     <button
                       onClick={handleSign}
                       disabled={isSigning}
                       className="flex-1 px-4 py-2.5 bg-blue-500 hover:bg-blue-400 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
                     >
-                      {isSigning ? 'Signing...' : 'Confirm'}
+                      {isSigning ? t('tx.signing') : t('tx.confirm')}
                     </button>
                   </div>
                 </div>
@@ -613,16 +697,16 @@ function App() {
               </svg>
             </button>
             <img src="/tokamak.svg" alt="Tokamak Network" className="w-20 h-20 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-1">L2 ON-DEMAND</h3>
-            <h4 className="text-md font-medium text-blue-400 mb-3">TAILORED ETHEREUM</h4>
+            <h3 className="text-lg font-semibold text-white mb-1">{t('about.tagline')}</h3>
+            <h4 className="text-md font-medium text-blue-400 mb-3">{t('about.subtitle')}</h4>
             <p className="text-sm text-gray-400 mb-6">
-              Tokamak Network offers customized L2 networks & simple way to deploy your own L2 based on your needs
+              {t('about.description')}
             </p>
             <button
               onClick={() => window.open('https://www.tokamak.network/', '_blank')}
               className="px-6 py-2 bg-blue-500 hover:bg-blue-400 rounded-lg text-sm font-medium transition-colors"
             >
-              Go to Website
+              {t('about.goToWebsite')}
             </button>
           </div>
         </div>
@@ -636,6 +720,7 @@ function App() {
         />
       )}
     </div>
+    </LanguageContext.Provider>
   );
 }
 

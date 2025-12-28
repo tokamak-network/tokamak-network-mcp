@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { formatUnits, parseUnits, encodeFunctionData, encodeAbiParameters, parseAbi } from 'viem';
 import { CONTRACTS, OPERATORS, SUPPORTED_ABI } from '../../constants';
 import { useStakingData } from '../../hooks';
 import { formatBalance } from '../../utils';
+import { useLanguage } from '../../i18n';
 import type { AppProps } from '../../types/app';
 import type { PendingTransaction } from '../../types';
 
 export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId }: AppProps) {
+  const { t } = useLanguage();
   const [stakingToken, setStakingToken] = useState<'TON' | 'WTON'>('TON');
   const [stakingAmount, setStakingAmount] = useState('');
   const [selectedOperator, setSelectedOperator] = useState('');
@@ -14,14 +16,25 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
   const [withdrawalIndex, setWithdrawalIndex] = useState(0);
   const [isOperatorDropdownOpen, setIsOperatorDropdownOpen] = useState(false);
 
+  // Dragging state
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
   const {
     tonBalance,
     wtonBalance,
     stakedAmount,
     currentBlockNumber,
     pendingWithdrawals,
+    isLoading,
     loadingWithdrawals,
   } = useStakingData(selectedOperator);
+
+  // Skeleton component
+  const Skeleton = ({ className = '' }: { className?: string }) => (
+    <div className={`animate-pulse bg-gray-700 rounded ${className}`} />
+  );
 
   // Reset selected operator when network changes
   useEffect(() => {
@@ -32,6 +45,35 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
   useEffect(() => {
     setWithdrawalIndex(0);
   }, [selectedOperator, pendingWithdrawals.length]);
+
+  // Drag handlers
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      setPosition({
+        x: e.clientX - dragOffset.current.x,
+        y: e.clientY - dragOffset.current.y,
+      });
+    };
+    const handleMouseUp = () => setIsDragging(false);
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    dragOffset.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    };
+  };
 
   const handleStake = () => {
     if (!stakingAmount || parseFloat(stakingAmount) <= 0) return;
@@ -136,12 +178,19 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative w-full max-w-md animate-fade-in">
+      <div
+        className="relative w-full max-w-md animate-fade-in"
+        style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+      >
         <div className="bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl overflow-hidden border border-white/10">
           {/* Window Title Bar */}
-          <div className="bg-gray-900/60 px-4 py-3 flex items-center border-b border-white/10">
+          <div
+            className="bg-gray-900/60 px-4 py-3 flex items-center border-b border-white/10 cursor-move select-none"
+            onMouseDown={handleDragStart}
+          >
             <button
               onClick={onClose}
+              onMouseDown={(e) => e.stopPropagation()}
               className="group w-3.5 h-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center"
             >
               <svg className="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -149,7 +198,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
               </svg>
             </button>
             <div className="flex-1 text-center">
-              <span className="text-sm font-medium text-white/60">Tokamak Staking</span>
+              <span className="text-sm font-medium text-white/60">{t('staking.title')}</span>
             </div>
             <div className="w-3" />
           </div>
@@ -161,14 +210,14 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                 <img src="/tokamak.svg" alt="Tokamak" className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Tokamak Staking</h3>
-                <p className="text-sm text-gray-400">Stake or unstake tokens</p>
+                <h3 className="text-lg font-semibold text-white">{t('staking.title')}</h3>
+                <p className="text-sm text-gray-400">{t('staking.subtitle')}</p>
               </div>
             </div>
 
             {!isConnected ? (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-center">
-                <p className="text-yellow-400 text-sm">Please connect your wallet first</p>
+                <p className="text-yellow-400 text-sm">{t('staking.connectWallet')}</p>
               </div>
             ) : (
               <>
@@ -181,7 +230,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                       : 'text-gray-400 hover:text-white'
                       }`}
                   >
-                    STAKE
+                    {t('staking.stake')}
                   </button>
                   <button
                     onClick={() => { setStakingTab('unstake'); setStakingAmount(''); }}
@@ -190,13 +239,13 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                       : 'text-gray-400 hover:text-white'
                       }`}
                   >
-                    UNSTAKE
+                    {t('staking.unstake')}
                   </button>
                 </div>
 
                 {/* Operator Selection */}
                 <div className="space-y-2">
-                  <label className="text-xs text-gray-400 uppercase tracking-wide">Operator</label>
+                  <label className="text-xs text-gray-400 uppercase tracking-wide">{t('staking.operator')}</label>
                   <div className="relative">
                     <button
                       type="button"
@@ -204,7 +253,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                       className="w-full bg-gray-900/50 border border-white/10 rounded-lg px-4 py-3 text-left text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer flex items-center justify-between"
                     >
                       <span className={selectedOperator ? 'text-white' : 'text-gray-500'}>
-                        {selectedOperator || 'Select Operator'}
+                        {selectedOperator || t('staking.selectOperator')}
                       </span>
                       <svg
                         className={`w-4 h-4 text-gray-400 transition-transform ${isOperatorDropdownOpen ? 'rotate-180' : ''}`}
@@ -270,13 +319,17 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                     {/* Amount Input */}
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <label className="text-xs text-gray-400 uppercase tracking-wide">Amount</label>
+                        <label className="text-xs text-gray-400 uppercase tracking-wide">{t('staking.amount')}</label>
                         <span className="text-xs text-gray-400">
-                          Balance: <span className="text-white">{
-                            stakingToken === 'TON'
-                              ? formatBalance(tonBalance as bigint, 18)
-                              : formatBalance(wtonBalance as bigint, 27)
-                          }</span> {stakingToken}
+                          {t('staking.balance')}: {isLoading ? (
+                            <Skeleton className="inline-block w-16 h-4 align-middle" />
+                          ) : (
+                            <span className="text-white">{
+                              stakingToken === 'TON'
+                                ? formatBalance(tonBalance as bigint, 18)
+                                : formatBalance(wtonBalance as bigint, 27)
+                            }</span>
+                          )} {stakingToken}
                         </span>
                       </div>
                       <div className="relative">
@@ -309,7 +362,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                     {/* Network Info */}
                     <div className="bg-gray-900/30 rounded-lg p-3">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Network</span>
+                        <span className="text-gray-400">{t('staking.network')}</span>
                         <span className="text-white capitalize">{chainId === 1 ? 'Ethereum' : 'Sepolia'}</span>
                       </div>
                     </div>
@@ -320,7 +373,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                       disabled={!stakingAmount || parseFloat(stakingAmount) <= 0 || !selectedOperator}
                       className="w-full py-3 bg-blue-500 hover:bg-blue-400 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-medium transition-colors"
                     >
-                      Stake {stakingToken}
+                      {t('staking.stakeButton')} {stakingToken}
                     </button>
                   </>
                 ) : (
@@ -328,10 +381,14 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                     {/* Staked Amount Display */}
                     <div className="bg-gray-900/30 rounded-lg p-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-400">Staked Amount</span>
-                        <span className="text-lg font-semibold text-white">
-                          {selectedOperator ? formatBalance(stakedAmount as bigint, 27) : '—'} TON
-                        </span>
+                        <span className="text-sm text-gray-400">{t('staking.stakedAmount')}</span>
+                        {isLoading && selectedOperator ? (
+                          <Skeleton className="w-24 h-6" />
+                        ) : (
+                          <span className="text-lg font-semibold text-white">
+                            {selectedOperator ? formatBalance(stakedAmount as bigint, 27) : '—'} TON
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -340,13 +397,13 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
                           <label className="text-xs text-gray-400 uppercase tracking-wide">
-                            Pending Withdrawals({pendingWithdrawals.length})
+                            {t('staking.pendingWithdrawals')}({pendingWithdrawals.length})
                           </label>
-                          {loadingWithdrawals && <span className="text-xs text-gray-500">Loading...</span>}
+                          {loadingWithdrawals && <span className="text-xs text-gray-500">{t('staking.loading')}</span>}
                         </div>
                         {pendingWithdrawals.length === 0 ? (
                           <div className="bg-gray-900/30 rounded-lg p-3 text-center">
-                            <span className="text-sm text-gray-500">No pending withdrawals</span>
+                            <span className="text-sm text-gray-500">{t('staking.noPendingWithdrawals')}</span>
                           </div>
                         ) : (
                           <div className="bg-gray-900/30 rounded-lg overflow-hidden">
@@ -384,7 +441,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                                         ? 'bg-green-500/20 text-green-400'
                                         : 'bg-yellow-500/20 text-yellow-400'
                                         }`}>
-                                        {isReady ? 'Ready' : `${blocksRemaining} blocks`}
+                                        {isReady ? t('staking.ready') : `${blocksRemaining} ${t('staking.blocks')}`}
                                       </div>
                                     </div>
                                     {isReady && (
@@ -393,13 +450,13 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                                           onClick={() => handleWithdraw(true)}
                                           className="flex-1 py-1.5 bg-green-500 hover:bg-green-400 rounded text-white text-xs font-medium transition-colors"
                                         >
-                                          Withdraw TON
+                                          {t('staking.withdrawTON')}
                                         </button>
                                         <button
                                           onClick={() => handleWithdraw(false)}
                                           className="flex-1 py-1.5 bg-purple-500 hover:bg-purple-400 rounded text-white text-xs font-medium transition-colors"
                                         >
-                                          Withdraw WTON
+                                          {t('staking.withdrawWTON')}
                                         </button>
                                       </div>
                                     )}
@@ -425,7 +482,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
 
                     {/* Divider */}
                     <div className="border-t border-white/10 pt-4">
-                      <label className="text-xs text-gray-400 uppercase tracking-wide">New Unstake Request</label>
+                      <label className="text-xs text-gray-400 uppercase tracking-wide">{t('staking.newUnstakeRequest')}</label>
                     </div>
 
                     {/* Unstake Amount Input */}
@@ -461,7 +518,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                       disabled={!stakingAmount || parseFloat(stakingAmount) <= 0 || !selectedOperator}
                       className="w-full py-3 bg-orange-500 hover:bg-orange-400 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-medium transition-colors"
                     >
-                      Request Withdrawal
+                      {t('staking.requestWithdrawal')}
                     </button>
                   </>
                 )}

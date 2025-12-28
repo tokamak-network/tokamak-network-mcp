@@ -33,31 +33,54 @@ src/
 ## frontend/ - 웹 UI
 MCP 서버와 WebSocket으로 통신하는 React 프론트엔드. 트랜잭션 서명 및 앱 런처 UI를 제공합니다.
 
+**기술 스택**: Vite + React 18 + TypeScript + Tailwind CSS v4 + Wagmi + Viem
+
 ```
 frontend/src/
 ├── main.tsx          # React 엔트리포인트
 ├── App.tsx           # 메인 쉘 (앱 런처, 트랜잭션 처리)
 ├── apps/             # 플러그인 앱
-│   ├── index.ts      # 앱 레지스트리
+│   ├── index.ts      # 앱 레지스트리 (APPS 배열)
 │   └── staking/
 │       └── StakingApp.tsx  # 스테이킹 앱
 ├── config/
 │   └── wagmi.ts      # Wagmi/WalletConnect 설정
 ├── constants/        # 상수 정의
+│   ├── index.ts      # barrel export
 │   ├── contracts.ts  # 컨트랙트 주소, 오퍼레이터 목록
 │   └── abis.ts       # ABI 정의
 ├── types/            # TypeScript 인터페이스
-│   ├── index.ts      # 공통 타입
+│   ├── index.ts      # barrel export + 공통 타입
 │   └── app.ts        # 앱 인터페이스 (AppProps, AppDefinition)
 ├── utils/            # 유틸리티 함수
+│   ├── index.ts      # barrel export
 │   ├── format.ts     # 포맷팅 함수
 │   └── decode.ts     # calldata 디코딩
-└── hooks/            # React 커스텀 훅
-    ├── useWebSocket.ts         # MCP 서버 통신
-    ├── useStakingData.ts       # 스테이킹 데이터 조회 (multicall)
-    ├── useNotifications.ts     # 알림 관리
-    └── useTransactionRequest.ts # 트랜잭션 요청 처리
+├── hooks/            # React 커스텀 훅
+│   ├── index.ts      # barrel export
+│   ├── useWebSocket.ts         # MCP 서버 통신
+│   ├── useStakingData.ts       # 스테이킹 데이터 조회 (multicall)
+│   ├── useNotifications.ts     # 알림 관리
+│   └── useTransactionRequest.ts # 트랜잭션 요청 처리
+└── i18n/             # 다국어 지원
+    ├── index.ts      # LanguageContext, useLanguage hook
+    └── translations.ts # 번역 데이터 (en/ko)
 ```
+
+### 플러그인 앱 시스템
+새 앱 추가 시:
+1. `apps/<app-name>/<AppName>App.tsx` 생성 (AppProps 인터페이스 구현)
+2. `apps/index.ts`의 APPS 배열에 AppDefinition 추가
+3. 앱은 `onRequestTransaction(tx)`으로 트랜잭션 요청
+
+### UI 스타일
+- macOS 스타일 UI (메뉴바, 윈도우, 드롭다운)
+- 다크 테마 기반 (`bg-gray-800`, `bg-gray-900`)
+- 유리 효과 (`backdrop-blur-xl`)
+
+### 네트워크 설정
+- `CONTRACTS[network]`: 컨트랙트 주소 (mainnet/sepolia)
+- `OPERATORS[network]`: 오퍼레이터 목록 (mainnet/sepolia)
 
 ## scripts/
 - `setup-mcp.ts` - MCP 서버 설정 스크립트

@@ -184,6 +184,7 @@ export function useStakingData(selectedOperator: string) {
     stakedAmount: parsedBaseData.stakedAmount,
     currentBlockNumber,
     pendingWithdrawals,
+    isLoading: isLoadingBase,
     loadingWithdrawals: isLoadingBase || isLoadingWithdrawals,
     selectedOperatorAddress,
     network,
