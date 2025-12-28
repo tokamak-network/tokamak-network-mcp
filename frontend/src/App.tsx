@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAccount, useSendTransaction, useSwitchChain, useReadContract, useBlockNumber, usePublicClient } from 'wagmi';
+import { useAccount, useSendTransaction, useSwitchChain } from 'wagmi';
 import { formatEther, formatUnits, decodeAbiParameters, parseUnits, encodeFunctionData, encodeAbiParameters, parseAbi } from 'viem';
-import { CONTRACTS, OPERATORS, ERC20_ABI, SEIG_MANAGER_ABI, DEPOSIT_MANAGER_ABI, SUPPORTED_ABI } from './constants';
-import type { PendingTransaction, Notification, WithdrawalRequest } from './types';
+import { CONTRACTS, OPERATORS, SUPPORTED_ABI } from './constants';
+import type { PendingTransaction, Notification } from './types';
 import { formatBalance, getNetworkName, formatTime, decodeCalldata } from './utils';
-import { useWebSocket } from './hooks';
+import { useWebSocket, useStakingData } from './hooks';
 
 const STORAGE_KEY = 'tokamak_notifications';
 
@@ -47,113 +47,15 @@ function App() {
   const networkMenuRef = useRef<HTMLDivElement>(null);
   const walletMenuRef = useRef<HTMLDivElement>(null);
 
-  // Get token balances
-  const network = chainId === 1 ? 'mainnet' : 'sepolia';
-  const { data: tonBalance } = useReadContract({
-    address: CONTRACTS[network]?.TON as `0x${string}`,
-    abi: ERC20_ABI,
-    functionName: 'balanceOf',
-    args: address ? [address] : undefined,
-    query: { enabled: !!address && !!chainId },
-  });
-  const { data: wtonBalance } = useReadContract({
-    address: CONTRACTS[network]?.WTON as `0x${string}`,
-    abi: ERC20_ABI,
-    functionName: 'balanceOf',
-    args: address ? [address] : undefined,
-    query: { enabled: !!address && !!chainId },
-  });
-
-  // Get staked amount for selected operator
-  const selectedOperatorAddress = selectedOperator
-    ? OPERATORS[network]?.find(op => op.name === selectedOperator)?.address
-    : undefined;
-
-  const { data: stakedAmount } = useReadContract({
-    address: CONTRACTS[network]?.SeigManager as `0x${string}`,
-    abi: SEIG_MANAGER_ABI,
-    functionName: 'stakeOf',
-    args: selectedOperatorAddress && address
-      ? [selectedOperatorAddress as `0x${string}`, address]
-      : undefined,
-    query: { enabled: !!address && !!chainId && !!selectedOperatorAddress },
-  });
-
-  // Get current block number
-  const { data: currentBlockNumber } = useBlockNumber({
-    watch: true,
-    query: { refetchInterval: 12000 }, // Refresh every ~12 seconds (1 block)
-  });
-
-  // Get pending withdrawal requests
-  const publicClient = usePublicClient();
-  const [pendingWithdrawals, setPendingWithdrawals] = useState<WithdrawalRequest[]>([]);
-  const [loadingWithdrawals, setLoadingWithdrawals] = useState(false);
-
-  useEffect(() => {
-    async function fetchPendingWithdrawals() {
-      if (!publicClient || !address || !selectedOperatorAddress || !chainId) {
-        setPendingWithdrawals([]);
-        return;
-      }
-
-      setLoadingWithdrawals(true);
-      try {
-        const depositManagerAddress = CONTRACTS[network]?.DepositManager as `0x${string}`;
-        const layer2Address = selectedOperatorAddress as `0x${string}`;
-
-        // Get withdrawal request index and total count
-        const [withdrawalRequestIndex, numRequests] = await Promise.all([
-          publicClient.readContract({
-            address: depositManagerAddress,
-            abi: DEPOSIT_MANAGER_ABI,
-            functionName: 'withdrawalRequestIndex',
-            args: [layer2Address, address],
-          }),
-          publicClient.readContract({
-            address: depositManagerAddress,
-            abi: DEPOSIT_MANAGER_ABI,
-            functionName: 'numRequests',
-            args: [layer2Address, address],
-          }),
-        ]);
-
-        const requestCount = Number(numRequests - withdrawalRequestIndex);
-        if (requestCount <= 0) {
-          setPendingWithdrawals([]);
-          return;
-        }
-
-        // Fetch all pending requests
-        const requests: WithdrawalRequest[] = [];
-        for (let i = 0; i < requestCount; i++) {
-          const [withdrawableBlockNumber, amount, processed] = await publicClient.readContract({
-            address: depositManagerAddress,
-            abi: DEPOSIT_MANAGER_ABI,
-            functionName: 'withdrawalRequest',
-            args: [layer2Address, address, withdrawalRequestIndex + BigInt(i)],
-          });
-
-          if (amount !== 0n && !processed) {
-            requests.push({
-              index: withdrawalRequestIndex + BigInt(i),
-              withdrawableBlockNumber,
-              amount,
-              processed,
-            });
-          }
-        }
-        setPendingWithdrawals(requests);
-      } catch (error) {
-        console.error('Failed to fetch pending withdrawals:', error);
-        setPendingWithdrawals([]);
-      } finally {
-        setLoadingWithdrawals(false);
-      }
-    }
-
-    fetchPendingWithdrawals();
-  }, [publicClient, address, selectedOperatorAddress, chainId, network, currentBlockNumber]);
+  // Get all staking data via multicall
+  const {
+    tonBalance,
+    wtonBalance,
+    stakedAmount,
+    currentBlockNumber,
+    pendingWithdrawals,
+    loadingWithdrawals,
+  } = useStakingData(selectedOperator);
 
   // Update clock every minute
   useEffect(() => {
