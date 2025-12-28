@@ -9,14 +9,12 @@ import {
 } from 'viem';
 import { z } from 'zod';
 import { getLayer2Address, getStakedBalance, getTokenBalance } from '../actions';
-import { KNOWN_LAYER2_MAINNET, KNOWN_LAYER2_SEPOLIA } from '../constants';
+import { KNOWN_LAYER2 } from '../constants';
 import { ERRORS } from '../errors';
 import { getTokenAddress } from '../tokens';
 import { requestTransaction } from '../transaction';
 import { getNetworkAddresses } from '../utils';
-import { getConnectionState } from '../ws';
-
-const KNOWN_LAYER2 = [...KNOWN_LAYER2_MAINNET, ...KNOWN_LAYER2_SEPOLIA] as const;
+import { withConnection } from './helper';
 
 export function registerStakeTools(server: McpServer) {
   const stakedTonSchema = {
@@ -30,10 +28,7 @@ export function registerStakeTools(server: McpServer) {
       inputSchema: stakedTonSchema,
     },
     async (args: z.infer<z.ZodObject<typeof stakedTonSchema>>) => {
-      try {
-        const { connected, address: account, network } = getConnectionState();
-        if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
-
+      return withConnection(async ({ address: account, network }) => {
         const targetAddress = getLayer2Address(args.layer2, network);
         const networkAddresses = getNetworkAddresses(network);
         const stakedAmount = formatUnits(
@@ -46,21 +41,8 @@ export function registerStakeTools(server: McpServer) {
           27,
         );
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Staked TON balance to ${args.layer2} on ${network}: ${stakedAmount}`,
-            },
-          ],
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: 'text' as const, text: message }],
-          isError: true,
-        };
-      }
+        return `Staked TON balance to ${args.layer2} on ${network}: ${stakedAmount}`;
+      });
     },
   );
 
@@ -76,10 +58,7 @@ export function registerStakeTools(server: McpServer) {
       inputSchema: stakeTonSchema,
     },
     async (args: z.infer<z.ZodObject<typeof stakeTonSchema>>) => {
-      try {
-        const { connected, address: account, network } = getConnectionState();
-        if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
-
+      return withConnection(async ({ address: account, network }) => {
         const targetAddress = getLayer2Address(args.layer2, network);
         const networkAddresses = getNetworkAddresses(network);
 
@@ -116,21 +95,8 @@ export function registerStakeTools(server: McpServer) {
           }),
         });
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Sent request to stake ${args.tokenAmount} TON tokens to ${args.layer2} on ${network}`,
-            },
-          ],
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: 'text' as const, text: message }],
-          isError: true,
-        };
-      }
+        return `Sent request to stake ${args.tokenAmount} TON tokens to ${args.layer2} on ${network}`;
+      });
     },
   );
 }

@@ -5,7 +5,7 @@ import { getAllowance, getTokenBalance } from '../actions';
 import { ERRORS } from '../errors';
 import { getTokenAddress } from '../tokens';
 import { requestTransaction } from '../transaction';
-import { getConnectionState } from '../ws';
+import { withConnection } from './helper';
 
 export function registerTonTools(server: McpServer) {
   const wrapTonSchema = {
@@ -19,10 +19,7 @@ export function registerTonTools(server: McpServer) {
       inputSchema: wrapTonSchema,
     },
     async (args: z.infer<z.ZodObject<typeof wrapTonSchema>>) => {
-      try {
-        const { connected, address: account, network } = getConnectionState();
-        if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
-
+      return withConnection(async ({ address: account, network }) => {
         const { balance, formatted, decimals } = await getTokenBalance({
           token: 'TON',
           network,
@@ -58,21 +55,8 @@ export function registerTonTools(server: McpServer) {
           }),
         });
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Sent wrap ${args.tokenAmount} TON tokens to WTON on ${network}`,
-            },
-          ],
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: 'text' as const, text: message }],
-          isError: true,
-        };
-      }
+        return `Sent wrap ${args.tokenAmount} TON tokens to WTON on ${network}`;
+      });
     },
   );
 }

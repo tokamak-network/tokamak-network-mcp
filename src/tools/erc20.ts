@@ -7,7 +7,7 @@ import { KNOWN_NETWORKS, KNOWN_TOKENS } from '../constants';
 import { ERRORS } from '../errors';
 import { getTokenAddress } from '../tokens';
 import { requestTransaction } from '../transaction';
-import { getConnectionState } from '../ws';
+import { withConnection } from './helper';
 
 export function registerErc20Tools(server: McpServer) {
   const getTokenBalanceSchema = {
@@ -25,33 +25,15 @@ export function registerErc20Tools(server: McpServer) {
       inputSchema: getTokenBalanceSchema,
     },
     async (args: z.infer<z.ZodObject<typeof getTokenBalanceSchema>>) => {
-      try {
-        const { connected, address, network } = getConnectionState();
-        if (!connected) {
-          throw new Error(ERRORS.NO_WALLET_CONNECTED);
-        }
-
+      return withConnection(async ({ address, network }) => {
         const { formatted, symbol } = await getTokenBalance({
           token: args.token,
           account: address,
           network,
         });
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Balance: ${formatted} ${symbol}`,
-            },
-          ],
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: 'text' as const, text: message }],
-          isError: true,
-        };
-      }
+        return `Balance: ${formatted} ${symbol}`;
+      });
     },
   );
 
@@ -75,9 +57,7 @@ export function registerErc20Tools(server: McpServer) {
       inputSchema: approveTokenSchema,
     },
     async (args: z.infer<z.ZodObject<typeof approveTokenSchema>>) => {
-      try {
-        const { connected, address: account, network: connectedNetwork } = getConnectionState();
-        if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
+      return withConnection(async ({ address: account, network: connectedNetwork }) => {
         const network = args.network ?? connectedNetwork;
 
         const tokenAddress = getTokenAddress(args.token, network);
@@ -102,21 +82,8 @@ export function registerErc20Tools(server: McpServer) {
           data,
         });
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Sent approve ${args.amount} ${args.token} to ${args.spender} on ${network}`,
-            },
-          ],
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: 'text' as const, text: message }],
-          isError: true,
-        };
-      }
+        return `Sent approve ${args.amount} ${args.token} to ${args.spender} on ${network}`;
+      });
     },
   );
 
@@ -136,10 +103,7 @@ export function registerErc20Tools(server: McpServer) {
       inputSchema: transferTokenSchema,
     },
     async (args: z.infer<z.ZodObject<typeof transferTokenSchema>>) => {
-      try {
-        const { connected, address: account, network } = getConnectionState();
-        if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
-
+      return withConnection(async ({ address: account, network }) => {
         const tokenAddress = getTokenAddress(args.token, network);
         if (!tokenAddress) {
           throw new Error(ERRORS.TOKEN_NOT_CONFIGURED(args.token, network));
@@ -167,21 +131,8 @@ export function registerErc20Tools(server: McpServer) {
           data,
         });
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Sent transfer ${args.amount} ${args.token} to ${args.to} on ${network}`,
-            },
-          ],
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: 'text' as const, text: message }],
-          isError: true,
-        };
-      }
+        return `Sent transfer ${args.amount} ${args.token} to ${args.to} on ${network}`;
+      });
     },
   );
 }

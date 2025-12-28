@@ -2,13 +2,10 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { encodeFunctionData, formatUnits, parseAbi } from 'viem';
 import { z } from 'zod';
 import { getCurrentBlockNumber, getLayer2Address, getPendingWithdrawalRequests } from '../actions';
-import { KNOWN_LAYER2_MAINNET, KNOWN_LAYER2_SEPOLIA } from '../constants';
-import { ERRORS } from '../errors';
+import { KNOWN_LAYER2 } from '../constants';
 import { requestTransaction } from '../transaction';
 import { getNetworkAddresses } from '../utils';
-import { getConnectionState } from '../ws';
-
-const KNOWN_LAYER2 = [...KNOWN_LAYER2_MAINNET, ...KNOWN_LAYER2_SEPOLIA] as const;
+import { withConnection } from './helper';
 
 export function registerWithdrawTools(server: McpServer) {
   const pendingWithdrawalSchema = {
@@ -23,10 +20,7 @@ export function registerWithdrawTools(server: McpServer) {
       inputSchema: pendingWithdrawalSchema,
     },
     async (args: z.infer<z.ZodObject<typeof pendingWithdrawalSchema>>) => {
-      try {
-        const { connected, address: account, network } = getConnectionState();
-        if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
-
+      return withConnection(async ({ address: account, network }) => {
         const targetAddress = getLayer2Address(args.layer2, network);
         const networkAddresses = getNetworkAddresses(network);
 
@@ -38,14 +32,7 @@ export function registerWithdrawTools(server: McpServer) {
         });
 
         if (pendingRequests.length === 0) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `No pending withdrawal requests from ${args.layer2} on ${network}`,
-              },
-            ],
-          };
+          return `No pending withdrawal requests from ${args.layer2} on ${network}`;
         }
 
         const formatted = pendingRequests.map((req) => ({
@@ -53,21 +40,8 @@ export function registerWithdrawTools(server: McpServer) {
           amount: formatUnits(req.amount, 27),
         }));
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Pending withdrawal requests from ${args.layer2} on ${network}:\n${JSON.stringify(formatted, null, 2)}`,
-            },
-          ],
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: 'text' as const, text: message }],
-          isError: true,
-        };
-      }
+        return `Pending withdrawal requests from ${args.layer2} on ${network}:\n${JSON.stringify(formatted, null, 2)}`;
+      });
     },
   );
 
@@ -83,10 +57,7 @@ export function registerWithdrawTools(server: McpServer) {
       inputSchema: withdrawTonSchema,
     },
     async (args: z.infer<z.ZodObject<typeof withdrawTonSchema>>) => {
-      try {
-        const { connected, address: account, network } = getConnectionState();
-        if (!connected) throw new Error(ERRORS.NO_WALLET_CONNECTED);
-
+      return withConnection(async ({ address: account, network }) => {
         const targetAddress = getLayer2Address(args.layer2, network);
         const networkAddresses = getNetworkAddresses(network);
 
@@ -129,21 +100,8 @@ export function registerWithdrawTools(server: McpServer) {
           }),
         });
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Sent request to withdraw TON from ${args.layer2} on ${network}`,
-            },
-          ],
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: 'text' as const, text: message }],
-          isError: true,
-        };
-      }
+        return `Sent request to withdraw TON from ${args.layer2} on ${network}`;
+      });
     },
   );
 }

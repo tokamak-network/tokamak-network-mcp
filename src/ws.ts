@@ -2,9 +2,10 @@ import path from 'node:path';
 import { staticPlugin } from '@elysiajs/static';
 import { Elysia } from 'elysia';
 import open from 'open';
-import type { Address, Hash, Hex } from 'viem';
+import type { Address, Hash } from 'viem';
 import type { KnownNetwork } from './constants';
 import { ERRORS } from './errors';
+import type { WalletMessage } from './types';
 
 const projectRoot = path.resolve(import.meta.dir, '..');
 const frontendDist = path.join(projectRoot, 'frontend', 'dist');
@@ -13,18 +14,6 @@ const frontendDist = path.join(projectRoot, 'frontend', 'dist');
 type WsClient = {
   send: (data: string) => void;
 };
-
-interface TransactionRequest {
-  to: Address;
-  data: Hex;
-  value?: bigint;
-}
-
-type WalletMessage =
-  | { type: 'wallet_connected'; data: { address: Address; network: string } }
-  | { type: 'tx_result'; data: { hash: Hash } }
-  | { type: 'sign_tx'; data: TransactionRequest }
-  | { type: 'network_changed'; data: { network: string } };
 
 // State
 let wsClient: WsClient | null = null;
@@ -136,17 +125,4 @@ export function createServer(port: number = 3000) {
     .get('/api/wallet', () => ({ address: getAccount() }));
 
   return app;
-}
-
-export async function startServer(port: number = 3000): Promise<void> {
-  dashboardPort = port;
-  const app = createServer(port);
-
-  app.listen(port, () => {
-    console.error(`Server running on http://localhost:${port}`);
-  });
-}
-
-export async function openBrowser(): Promise<void> {
-  await open(`http://localhost:${dashboardPort}`);
 }

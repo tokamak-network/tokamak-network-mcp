@@ -38,6 +38,8 @@ export const KNOWN_LAYER2_MAINNET = [
 
 export const KNOWN_LAYER2_SEPOLIA = ['TokamakOperator_v2', 'poseidon'] as const;
 
+export const KNOWN_LAYER2 = [...KNOWN_LAYER2_MAINNET, ...KNOWN_LAYER2_SEPOLIA] as const;
+
 export type KnownLayer2Mainnet = (typeof KNOWN_LAYER2_MAINNET)[number];
 export type KnownLayer2Sepolia = (typeof KNOWN_LAYER2_SEPOLIA)[number];
 export type KnownLayer2 = KnownLayer2Mainnet | KnownLayer2Sepolia;
