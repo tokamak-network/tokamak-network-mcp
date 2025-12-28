@@ -11,6 +11,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
   const [stakingAmount, setStakingAmount] = useState('');
   const [selectedOperator, setSelectedOperator] = useState('');
   const [stakingTab, setStakingTab] = useState<'stake' | 'unstake'>('stake');
+  const [withdrawalIndex, setWithdrawalIndex] = useState(0);
 
   const {
     tonBalance,
@@ -25,6 +26,11 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
   useEffect(() => {
     setSelectedOperator('');
   }, [chainId]);
+
+  // Reset withdrawal index when operator changes or withdrawals update
+  useEffect(() => {
+    setWithdrawalIndex(0);
+  }, [selectedOperator, pendingWithdrawals.length]);
 
   const handleStake = () => {
     if (!stakingAmount || parseFloat(stakingAmount) <= 0) return;
@@ -301,11 +307,13 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                       </div>
                     </div>
 
-                    {/* Pending Withdrawals List */}
+                    {/* Pending Withdrawals */}
                     {selectedOperator && (
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <label className="text-xs text-gray-400 uppercase tracking-wide">Pending Withdrawals</label>
+                          <label className="text-xs text-gray-400 uppercase tracking-wide">
+                            Pending Withdrawals({pendingWithdrawals.length})
+                          </label>
                           {loadingWithdrawals && <span className="text-xs text-gray-500">Loading...</span>}
                         </div>
                         {pendingWithdrawals.length === 0 ? (
@@ -313,16 +321,29 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                             <span className="text-sm text-gray-500">No pending withdrawals</span>
                           </div>
                         ) : (
-                          <div className="bg-gray-900/30 rounded-lg divide-y divide-white/5 max-h-48 overflow-y-auto">
-                            {pendingWithdrawals.map((req, idx) => {
+                          <div className="bg-gray-900/30 rounded-lg overflow-hidden">
+                            {(() => {
+                              const req = pendingWithdrawals[withdrawalIndex];
                               const isReady = currentBlockNumber !== undefined && currentBlockNumber >= req.withdrawableBlockNumber;
                               const blocksRemaining = currentBlockNumber !== undefined
                                 ? Number(req.withdrawableBlockNumber - currentBlockNumber)
                                 : 0;
                               return (
-                                <div key={idx} className="p-3 space-y-2">
-                                  <div className="flex justify-between items-center">
-                                    <div>
+                                <div className="flex">
+                                  {/* Left Arrow Area */}
+                                  <button
+                                    onClick={() => setWithdrawalIndex(i => Math.max(0, i - 1))}
+                                    disabled={withdrawalIndex === 0}
+                                    className="w-10 flex-shrink-0 flex items-center justify-center bg-gray-800/50 hover:bg-gray-700/50 disabled:bg-gray-900/30 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    <svg className="w-6 h-6 text-gray-300 disabled:text-gray-600" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                  </button>
+
+                                  {/* Content Area */}
+                                  <div className="flex-1 p-3 space-y-2">
+                                    <div className="text-center">
                                       <span className="text-sm text-white font-medium">
                                         {formatBalance(req.amount, 27)} TON
                                       </span>
@@ -330,32 +351,45 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                                         Block #{req.withdrawableBlockNumber.toString()}
                                       </div>
                                     </div>
-                                    <div className={`text-xs px-2 py-1 rounded ${isReady
-                                      ? 'bg-green-500/20 text-green-400'
-                                      : 'bg-yellow-500/20 text-yellow-400'
-                                      }`}>
-                                      {isReady ? 'Ready' : `${blocksRemaining} blocks`}
+                                    <div className="flex justify-center">
+                                      <div className={`text-xs px-2 py-1 rounded ${isReady
+                                        ? 'bg-green-500/20 text-green-400'
+                                        : 'bg-yellow-500/20 text-yellow-400'
+                                        }`}>
+                                        {isReady ? 'Ready' : `${blocksRemaining} blocks`}
+                                      </div>
                                     </div>
+                                    {isReady && (
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={() => handleWithdraw(true)}
+                                          className="flex-1 py-1.5 bg-green-500 hover:bg-green-400 rounded text-white text-xs font-medium transition-colors"
+                                        >
+                                          Withdraw TON
+                                        </button>
+                                        <button
+                                          onClick={() => handleWithdraw(false)}
+                                          className="flex-1 py-1.5 bg-purple-500 hover:bg-purple-400 rounded text-white text-xs font-medium transition-colors"
+                                        >
+                                          Withdraw WTON
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
-                                  {isReady && (
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => handleWithdraw(true)}
-                                        className="flex-1 py-1.5 bg-green-500 hover:bg-green-400 rounded text-white text-xs font-medium transition-colors"
-                                      >
-                                        Withdraw TON
-                                      </button>
-                                      <button
-                                        onClick={() => handleWithdraw(false)}
-                                        className="flex-1 py-1.5 bg-purple-500 hover:bg-purple-400 rounded text-white text-xs font-medium transition-colors"
-                                      >
-                                        Withdraw WTON
-                                      </button>
-                                    </div>
-                                  )}
+
+                                  {/* Right Arrow Area */}
+                                  <button
+                                    onClick={() => setWithdrawalIndex(i => Math.min(pendingWithdrawals.length - 1, i + 1))}
+                                    disabled={withdrawalIndex === pendingWithdrawals.length - 1}
+                                    className="w-10 flex-shrink-0 flex items-center justify-center bg-gray-800/50 hover:bg-gray-700/50 disabled:bg-gray-900/30 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    <svg className="w-6 h-6 text-gray-300 disabled:text-gray-600" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                  </button>
                                 </div>
                               );
-                            })}
+                            })()}
                           </div>
                         )}
                       </div>
