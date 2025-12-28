@@ -1,3 +1,5 @@
+export * from './app';
+
 export interface PendingTransaction {
   to: string;
   value?: string;
