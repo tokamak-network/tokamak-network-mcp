@@ -1,7 +1,7 @@
 # Project Structure
 
 ## src/ - MCP 서버
-MCP(Model Context Protocol) 서버 코드. Tokamak Network 스테이킹 기능을 AI 에이전트에 제공합니다.
+MCP(Model Context Protocol) 서버 코드. Tokamak Network 토큰 전송 / 스테이킹 / 언스테이킹 / 출금 기능을 AI 에이전트에 제공합니다.
 
 ```
 src/
