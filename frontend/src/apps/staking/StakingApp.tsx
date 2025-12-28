@@ -77,7 +77,6 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
     }
 
     onRequestTransaction(txData);
-    onClose();
     setStakingAmount('');
   };
 
@@ -106,7 +105,6 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
     };
 
     onRequestTransaction(txData);
-    onClose();
     setStakingAmount('');
   };
 
@@ -133,7 +131,6 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
     };
 
     onRequestTransaction(txData);
-    onClose();
   };
 
   return (

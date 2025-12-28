@@ -409,11 +409,15 @@ function App() {
           ))}
         </div>
 
-        {/* Transaction Window - centered */}
-        <div className="flex items-center justify-center h-full">
-          {pendingTx ? (
-            <div ref={txRequestRef} className="w-full max-w-md animate-fade-in">
-              <div className="bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-2xl overflow-hidden border border-white/10">
+        <div className="flex-1" />
+      </div>
+
+      {/* Transaction Window - fixed overlay */}
+      {pendingTx && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/30" />
+          <div ref={txRequestRef} className="relative w-full max-w-md animate-fade-in">
+            <div className="bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-2xl overflow-hidden border border-white/10">
                 {/* Window Title Bar */}
                 <div className="bg-gray-900/60 px-4 py-3 flex items-center border-b border-white/10">
                   <button onClick={handleReject} className="group w-3.5 h-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center">
@@ -571,11 +575,10 @@ function App() {
                     </button>
                   </div>
                 </div>
-              </div>
             </div>
-          ) : null}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* App Windows */}
       {openApps.map(appId => {
