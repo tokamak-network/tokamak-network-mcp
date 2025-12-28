@@ -1,6 +1,5 @@
 import type { Address } from 'viem';
 import { createPublicClient, http, parseAbi } from 'viem';
-import { ERRORS } from '../errors';
 import { getChainByName } from '../utils';
 
 export async function getStakedBalance({

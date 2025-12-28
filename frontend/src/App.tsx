@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAccount, useSendTransaction, useSwitchChain } from 'wagmi';
+import { useAccount, useSendTransaction, useSwitchChain, useReadContract, useBlockNumber, usePublicClient } from 'wagmi';
 import { useWebSocket } from './hooks/useWebSocket';
-import { formatEther, formatUnits, decodeFunctionData, decodeAbiParameters, parseAbi } from 'viem';
+import { formatEther, formatUnits, decodeFunctionData, decodeAbiParameters, parseAbi, parseUnits, encodeFunctionData, encodeAbiParameters } from 'viem';
 
 // 지원하는 함수들의 ABI
 const SUPPORTED_ABI = parseAbi([
@@ -11,6 +11,56 @@ const SUPPORTED_ABI = parseAbi([
   'function requestWithdrawal(address layer2, uint256 amount)',
   'function processRequest(address layer2, bool receiveTON)',
 ]);
+
+const ERC20_ABI = parseAbi([
+  'function balanceOf(address owner) view returns (uint256)',
+]);
+
+const SEIG_MANAGER_ABI = parseAbi([
+  'function stakeOf(address layer2, address account) view returns (uint256)',
+]);
+
+const DEPOSIT_MANAGER_ABI = parseAbi([
+  'function withdrawalRequestIndex(address layer2, address account) view returns (uint256)',
+  'function numRequests(address layer2, address account) view returns (uint256)',
+  'function withdrawalRequest(address layer2, address account, uint256 index) view returns (uint128 withdrawableBlockNumber, uint128 amount, bool processed)',
+]);
+
+// Staking contract addresses (Mainnet)
+const CONTRACTS = {
+  mainnet: {
+    TON: '0x2be5e8c109e2197D077D13A82dAead6a9b3433C5',
+    WTON: '0xc4A11aaf6ea915Ed7Ac194161d2fC9384F15bff2',
+    DepositManager: '0x0b58ca72b12f01fc05f8f252e226f3e2089bd00e',
+    SeigManager: '0x0b55a0f463b6defb81c6063973763951712d0e5f'
+  },
+  sepolia: {
+    TON: '0xa30fe40285B8f5c0457DbC3B7C8A280373c40044',
+    WTON: '0x79E0d92670106c85E9067b56B8F674340dCa0Bbd',
+    DepositManager: '0x90ffcc7F168DceDBEF1Cb6c6eB00cA73F922956F',
+    SeigManager: '0x2320542ae933FbAdf8f5B97cA348c7CeDA90fAd7'
+  },
+};
+
+// L2 Operators
+const OPERATORS = {
+  mainnet: [
+    { name: 'tokamak1', address: '0xf3B17FDB808c7d0Df9ACd24dA34700ce069007DF' },
+    { name: 'DXM_Corp', address: '0x44e3605d0ed58FD125E9C47D1bf25a4406c13b57' },
+    { name: 'DSRV', address: '0x2B67D8D4E61b68744885E243EfAF988f1Fc66E2D' },
+    { name: 'Talken', address: '0x36101b31e74c5E8f9a9cec378407Bbb776287761' },
+    { name: 'staked', address: '0x2c25A6be0e6f9017b5bf77879c487eed466F2194' },
+    { name: 'level', address: '0x0F42D1C40b95DF7A1478639918fc358B4aF5298D' },
+    { name: 'decipher', address: '0xbc602C1D9f3aE99dB4e9fD3662CE3D02e593ec5d' },
+    { name: 'DeSpread', address: '0xC42cCb12515b52B59c02eEc303c887C8658f5854' },
+    { name: 'Danal_Fintech', address: '0xf3CF23D896Ba09d8EcdcD4655d918f71925E3FE5' },
+    { name: 'Hammer', address: '0x06D34f65869Ec94B3BA8c0E08BCEb532f65005E2' },
+  ],
+  sepolia: [
+    { name: 'TokamakOperator_v2', address: '0xCBeF7Cc221c04AD2E68e623613cc5d33b0fE1599' },
+    { name: 'poseidon', address: '0xf078ae62ea4740e19ddf6c0c5e17ecdb820bbee1' },
+  ],
+};
 
 function decodeCalldata(data: string) {
   try {
@@ -29,6 +79,13 @@ interface PendingTransaction {
   value?: string;
   data?: string;
   chainId?: number;
+}
+
+interface WithdrawalRequest {
+  index: bigint;
+  withdrawableBlockNumber: bigint;
+  amount: bigint;
+  processed: boolean;
 }
 
 interface Notification {
@@ -72,11 +129,133 @@ function App() {
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const [showNetworkMenu, setShowNetworkMenu] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showStakingApp, setShowStakingApp] = useState(false);
+  const [stakingToken, setStakingToken] = useState<'TON' | 'WTON'>('TON');
+  const [stakingAmount, setStakingAmount] = useState('');
+  const [selectedOperator, setSelectedOperator] = useState('');
+  const [stakingTab, setStakingTab] = useState<'stake' | 'unstake'>('stake');
   const [currentTime, setCurrentTime] = useState(new Date());
   const txRequestRef = useRef<HTMLDivElement>(null);
   const notificationPanelRef = useRef<HTMLDivElement>(null);
   const networkMenuRef = useRef<HTMLDivElement>(null);
   const walletMenuRef = useRef<HTMLDivElement>(null);
+
+  // Get token balances
+  const network = chainId === 1 ? 'mainnet' : 'sepolia';
+  const { data: tonBalance } = useReadContract({
+    address: CONTRACTS[network]?.TON as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && !!chainId },
+  });
+  const { data: wtonBalance } = useReadContract({
+    address: CONTRACTS[network]?.WTON as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && !!chainId },
+  });
+
+  // Get staked amount for selected operator
+  const selectedOperatorAddress = selectedOperator
+    ? OPERATORS[network]?.find(op => op.name === selectedOperator)?.address
+    : undefined;
+
+  const { data: stakedAmount } = useReadContract({
+    address: CONTRACTS[network]?.SeigManager as `0x${string}`,
+    abi: SEIG_MANAGER_ABI,
+    functionName: 'stakeOf',
+    args: selectedOperatorAddress && address
+      ? [selectedOperatorAddress as `0x${string}`, address]
+      : undefined,
+    query: { enabled: !!address && !!chainId && !!selectedOperatorAddress },
+  });
+
+  // Get current block number
+  const { data: currentBlockNumber } = useBlockNumber({
+    watch: true,
+    query: { refetchInterval: 12000 }, // Refresh every ~12 seconds (1 block)
+  });
+
+  // Get pending withdrawal requests
+  const publicClient = usePublicClient();
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [loadingWithdrawals, setLoadingWithdrawals] = useState(false);
+
+  useEffect(() => {
+    async function fetchPendingWithdrawals() {
+      if (!publicClient || !address || !selectedOperatorAddress || !chainId) {
+        setPendingWithdrawals([]);
+        return;
+      }
+
+      setLoadingWithdrawals(true);
+      try {
+        const depositManagerAddress = CONTRACTS[network]?.DepositManager as `0x${string}`;
+        const layer2Address = selectedOperatorAddress as `0x${string}`;
+
+        // Get withdrawal request index and total count
+        const [withdrawalRequestIndex, numRequests] = await Promise.all([
+          publicClient.readContract({
+            address: depositManagerAddress,
+            abi: DEPOSIT_MANAGER_ABI,
+            functionName: 'withdrawalRequestIndex',
+            args: [layer2Address, address],
+          }),
+          publicClient.readContract({
+            address: depositManagerAddress,
+            abi: DEPOSIT_MANAGER_ABI,
+            functionName: 'numRequests',
+            args: [layer2Address, address],
+          }),
+        ]);
+
+        const requestCount = Number(numRequests - withdrawalRequestIndex);
+        if (requestCount <= 0) {
+          setPendingWithdrawals([]);
+          return;
+        }
+
+        // Fetch all pending requests
+        const requests: WithdrawalRequest[] = [];
+        for (let i = 0; i < requestCount; i++) {
+          const [withdrawableBlockNumber, amount, processed] = await publicClient.readContract({
+            address: depositManagerAddress,
+            abi: DEPOSIT_MANAGER_ABI,
+            functionName: 'withdrawalRequest',
+            args: [layer2Address, address, withdrawalRequestIndex + BigInt(i)],
+          });
+
+          if (amount !== 0n && !processed) {
+            requests.push({
+              index: withdrawalRequestIndex + BigInt(i),
+              withdrawableBlockNumber,
+              amount,
+              processed,
+            });
+          }
+        }
+        setPendingWithdrawals(requests);
+      } catch (error) {
+        console.error('Failed to fetch pending withdrawals:', error);
+        setPendingWithdrawals([]);
+      } finally {
+        setLoadingWithdrawals(false);
+      }
+    }
+
+    fetchPendingWithdrawals();
+  }, [publicClient, address, selectedOperatorAddress, chainId, network, currentBlockNumber]);
+
+  const formatBalance = (balance: bigint | undefined, decimals: number) => {
+    if (!balance) return '0';
+    const formatted = formatUnits(balance, decimals);
+    const num = parseFloat(formatted);
+    if (num === 0) return '0';
+    if (num < 0.0001) return '< 0.0001';
+    return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  };
 
   // Update clock every minute
   useEffect(() => {
@@ -88,6 +267,11 @@ function App() {
   useEffect(() => {
     saveNotifications(notifications);
   }, [notifications]);
+
+  // Reset selected operator when network changes
+  useEffect(() => {
+    setSelectedOperator('');
+  }, [chainId]);
 
   const getNetworkName = (id: number): string => {
     if (id === 1) return 'mainnet';
@@ -210,6 +394,114 @@ function App() {
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const handleStake = () => {
+    if (!stakingAmount || parseFloat(stakingAmount) <= 0) return;
+    if (!chainId) return;
+    if (!selectedOperator) return;
+
+    const network = chainId === 1 ? 'mainnet' : 'sepolia';
+    const contracts = CONTRACTS[network];
+    const operator = OPERATORS[network].find(op => op.name === selectedOperator);
+    if (!operator) return;
+    const layer2 = operator.address;
+
+    let txData: PendingTransaction;
+
+    if (stakingToken === 'TON') {
+      // TON staking uses approveAndCall
+      console.log(contracts.DepositManager)
+      const amountInWei = parseUnits(stakingAmount, 18);
+      const innerData = encodeAbiParameters(
+        [{ type: 'address' }, { type: 'address' }],
+        [contracts.DepositManager as `0x${string}`, layer2 as `0x${string}`]
+      );
+      console.log('innerData', innerData);
+      const calldata = encodeFunctionData({
+        abi: SUPPORTED_ABI,
+        functionName: 'approveAndCall',
+        args: [contracts.WTON as `0x${string}`, amountInWei, innerData],
+      });
+      txData = {
+        to: contracts.TON,
+        data: calldata,
+        chainId,
+      };
+    } else {
+      // WTON staking uses deposit function on DepositManager
+      const amountInRay = parseUnits(stakingAmount, 27); // WTON uses 27 decimals (RAY)
+      const calldata = encodeFunctionData({
+        abi: parseAbi(['function deposit(address layer2, uint256 amount)']),
+        functionName: 'deposit',
+        args: [layer2 as `0x${string}`, amountInRay],
+      });
+      txData = {
+        to: contracts.DepositManager,
+        data: calldata,
+        chainId,
+      };
+    }
+
+    setPendingTx(txData);
+    setShowStakingApp(false);
+    setStakingAmount('');
+  };
+
+  const handleUnstake = () => {
+    if (!stakingAmount || parseFloat(stakingAmount) <= 0) return;
+    if (!chainId) return;
+    if (!selectedOperator) return;
+
+    const network = chainId === 1 ? 'mainnet' : 'sepolia';
+    const contracts = CONTRACTS[network];
+    const operator = OPERATORS[network].find(op => op.name === selectedOperator);
+    if (!operator) return;
+    const layer2 = operator.address;
+
+    // requestWithdrawal uses WTON amount (27 decimals)
+    const amountInRay = parseUnits(stakingAmount, 27);
+    const calldata = encodeFunctionData({
+      abi: SUPPORTED_ABI,
+      functionName: 'requestWithdrawal',
+      args: [layer2 as `0x${string}`, amountInRay],
+    });
+
+    const txData: PendingTransaction = {
+      to: contracts.DepositManager,
+      data: calldata,
+      chainId,
+    };
+
+    setPendingTx(txData);
+    setShowStakingApp(false);
+    setStakingAmount('');
+  };
+
+  const handleWithdraw = (receiveTON: boolean) => {
+    if (!chainId) return;
+    if (!selectedOperator) return;
+
+    const network = chainId === 1 ? 'mainnet' : 'sepolia';
+    const contracts = CONTRACTS[network];
+    const operator = OPERATORS[network].find(op => op.name === selectedOperator);
+    if (!operator) return;
+    const layer2 = operator.address;
+
+    const calldata = encodeFunctionData({
+      abi: SUPPORTED_ABI,
+      functionName: 'processRequest',
+      args: [layer2 as `0x${string}`, receiveTON],
+    });
+
+    const txData: PendingTransaction = {
+      to: contracts.DepositManager,
+      data: calldata,
+      chainId,
+    };
+
+    setPendingTx(txData);
+    setShowStakingApp(false);
   };
 
   return (
@@ -428,177 +720,480 @@ function App() {
       </div>
 
       {/* Desktop Area */}
-      <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
-        {/* macOS Window */}
-        {pendingTx ? (
-          <div ref={txRequestRef} className="w-full max-w-md animate-fade-in">
-            <div className="bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-2xl overflow-hidden border border-white/10">
+      <div className="flex-1 relative p-8 overflow-auto">
+        {/* Desktop Icons */}
+        <div className="absolute top-8 left-8">
+          <button
+            onDoubleClick={() => setShowStakingApp(true)}
+            className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white/10 transition-colors group"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl flex items-center justify-center shadow-lg border border-white/20 group-hover:scale-105 transition-transform">
+              <img src="/tokamak.svg" alt="Staking" className="w-10 h-10" />
+            </div>
+            <span className="text-white text-xs font-medium text-center drop-shadow-lg">Staking</span>
+          </button>
+        </div>
+
+        {/* Transaction Window - centered */}
+        <div className="flex items-center justify-center h-full">
+          {pendingTx ? (
+            <div ref={txRequestRef} className="w-full max-w-md animate-fade-in">
+              <div className="bg-gray-800/80 backdrop-blur-xl rounded-xl shadow-2xl overflow-hidden border border-white/10">
+                {/* Window Title Bar */}
+                <div className="bg-gray-900/60 px-4 py-3 flex items-center border-b border-white/10">
+                  <button onClick={handleReject} className="group w-3.5 h-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center">
+                    <svg className="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <div className="flex-1 text-center">
+                    <span className="text-sm font-medium text-white/60">Transaction Request</span>
+                  </div>
+                  <div className="w-3" />
+                </div>
+
+                {/* Window Content */}
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                      <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Sign Transaction</h3>
+                      <p className="text-sm text-gray-400">Review and confirm this transaction</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 bg-black/20 rounded-lg p-4">
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">To</p>
+                      <p className="font-mono text-xs break-all text-gray-300">{pendingTx.to}</p>
+                    </div>
+                    {pendingTx.value && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Value</p>
+                        <p className="font-mono text-sm text-white">{formatEther(BigInt(pendingTx.value))} ETH</p>
+                      </div>
+                    )}
+                    {pendingTx.data && (() => {
+                      const decoded = decodeCalldata(pendingTx.data);
+                      if (decoded) {
+                        return (
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Function</p>
+                              <p className="font-mono text-sm text-blue-400">{decoded.functionName}</p>
+                            </div>
+                            {decoded.functionName === 'swapFromTON' && (
+                              <div>
+                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Amount</p>
+                                <p className="font-mono text-sm text-white">{formatUnits(decoded.args[0] as bigint, 18)} TON</p>
+                              </div>
+                            )}
+                            {decoded.functionName === 'approve' && (
+                              <>
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Spender</p>
+                                  <p className="font-mono text-xs break-all text-gray-300">{decoded.args[0] as string}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Amount</p>
+                                  <p className="font-mono text-sm text-white">{formatUnits(decoded.args[1] as bigint, 18)}</p>
+                                </div>
+                              </>
+                            )}
+                            {decoded.functionName === 'approveAndCall' && (() => {
+                              const [spender, amount, innerData] = decoded.args as [string, bigint, string];
+                              let depositManager = '';
+                              let layer2 = '';
+                              try {
+                                const innerDecoded = decodeAbiParameters(
+                                  [{ type: 'address' }, { type: 'address' }],
+                                  innerData as `0x${string}`,
+                                );
+                                depositManager = innerDecoded[0] as string;
+                                layer2 = innerDecoded[1] as string;
+                              } catch { }
+                              return (
+                                <>
+                                  <div>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Amount</p>
+                                    <p className="font-mono text-sm text-white">{formatUnits(amount, 18)} TON</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">WTON Contract</p>
+                                    <p className="font-mono text-xs break-all text-gray-300">{spender}</p>
+                                  </div>
+                                  {depositManager && (
+                                    <div>
+                                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Deposit Manager</p>
+                                      <p className="font-mono text-xs break-all text-gray-300">{depositManager}</p>
+                                    </div>
+                                  )}
+                                  {layer2 && (
+                                    <div>
+                                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Layer2</p>
+                                      <p className="font-mono text-xs break-all text-gray-300">{layer2}</p>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                            {decoded.functionName === 'requestWithdrawal' && (
+                              <>
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Layer2</p>
+                                  <p className="font-mono text-xs break-all text-gray-300">{decoded.args[0] as string}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Amount</p>
+                                  <p className="font-mono text-sm text-white">{formatUnits(decoded.args[1] as bigint, 27)} TON</p>
+                                </div>
+                              </>
+                            )}
+                            {decoded.functionName === 'processRequest' && (
+                              <>
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Layer2</p>
+                                  <p className="font-mono text-xs break-all text-gray-300">{decoded.args[0] as string}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Receive as</p>
+                                  <p className="font-mono text-sm text-white">{decoded.args[1] ? 'TON' : 'WTON'}</p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Data</p>
+                          <p className="font-mono text-xs break-all text-gray-400">
+                            {pendingTx.data.length > 66 ? `${pendingTx.data.slice(0, 66)}...` : pendingTx.data}
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={handleReject}
+                      disabled={isSigning}
+                      className="flex-1 px-4 py-2.5 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSign}
+                      disabled={isSigning}
+                      className="flex-1 px-4 py-2.5 bg-blue-500 hover:bg-blue-400 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+                    >
+                      {isSigning ? 'Signing...' : 'Confirm'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Staking App Window */}
+      {showStakingApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setShowStakingApp(false)}
+          />
+          <div className="relative w-full max-w-md animate-fade-in">
+            <div className="bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl overflow-hidden border border-white/10">
               {/* Window Title Bar */}
               <div className="bg-gray-900/60 px-4 py-3 flex items-center border-b border-white/10">
-                <button onClick={handleReject} className="group w-3.5 h-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center">
+                <button
+                  onClick={() => setShowStakingApp(false)}
+                  className="group w-3.5 h-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center"
+                >
                   <svg className="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
                 <div className="flex-1 text-center">
-                  <span className="text-sm font-medium text-white/60">Transaction Request</span>
+                  <span className="text-sm font-medium text-white/60">Tokamak Staking</span>
                 </div>
                 <div className="w-3" />
               </div>
 
               {/* Window Content */}
-              <div className="p-6 space-y-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+              <div className="p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center border border-white/20">
+                    <img src="/tokamak.svg" alt="Tokamak" className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white">Sign Transaction</h3>
-                    <p className="text-sm text-gray-400">Review and confirm this transaction</p>
+                    <h3 className="text-lg font-semibold text-white">Tokamak Staking</h3>
+                    <p className="text-sm text-gray-400">Stake or unstake tokens</p>
                   </div>
                 </div>
 
-                <div className="space-y-3 bg-black/20 rounded-lg p-4">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">To</p>
-                    <p className="font-mono text-xs break-all text-gray-300">{pendingTx.to}</p>
+                {!isConnected ? (
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-center">
+                    <p className="text-yellow-400 text-sm">Please connect your wallet first</p>
                   </div>
-                  {pendingTx.value && (
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Value</p>
-                      <p className="font-mono text-sm text-white">{formatEther(BigInt(pendingTx.value))} ETH</p>
+                ) : (
+                  <>
+                    {/* Tab Selection */}
+                    <div className="flex gap-1 bg-gray-900/50 rounded-lg p-1">
+                      <button
+                        onClick={() => { setStakingTab('stake'); setStakingAmount(''); }}
+                        className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-colors ${stakingTab === 'stake'
+                          ? 'bg-blue-500 text-white'
+                          : 'text-gray-400 hover:text-white'
+                          }`}
+                      >
+                        STAKE
+                      </button>
+                      <button
+                        onClick={() => { setStakingTab('unstake'); setStakingAmount(''); }}
+                        className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-colors ${stakingTab === 'unstake'
+                          ? 'bg-blue-500 text-white'
+                          : 'text-gray-400 hover:text-white'
+                          }`}
+                      >
+                        UNSTAKE
+                      </button>
                     </div>
-                  )}
-                  {pendingTx.data && (() => {
-                    const decoded = decodeCalldata(pendingTx.data);
-                    if (decoded) {
-                      return (
-                        <div className="space-y-3">
-                          <div>
-                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Function</p>
-                            <p className="font-mono text-sm text-blue-400">{decoded.functionName}</p>
-                          </div>
-                          {decoded.functionName === 'swapFromTON' && (
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Amount</p>
-                              <p className="font-mono text-sm text-white">{formatUnits(decoded.args[0] as bigint, 18)} TON</p>
-                            </div>
-                          )}
-                          {decoded.functionName === 'approve' && (
-                            <>
-                              <div>
-                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Spender</p>
-                                <p className="font-mono text-xs break-all text-gray-300">{decoded.args[0] as string}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Amount</p>
-                                <p className="font-mono text-sm text-white">{formatUnits(decoded.args[1] as bigint, 18)}</p>
-                              </div>
-                            </>
-                          )}
-                          {decoded.functionName === 'approveAndCall' && (() => {
-                            const [spender, amount, innerData] = decoded.args as [string, bigint, string];
-                            let depositManager = '';
-                            let layer2 = '';
-                            try {
-                              const innerDecoded = decodeAbiParameters(
-                                [{ type: 'address' }, { type: 'address' }],
-                                innerData as `0x${string}`,
-                              );
-                              depositManager = innerDecoded[0] as string;
-                              layer2 = innerDecoded[1] as string;
-                            } catch { }
-                            return (
-                              <>
-                                <div>
-                                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Amount</p>
-                                  <p className="font-mono text-sm text-white">{formatUnits(amount, 18)} TON</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">WTON Contract</p>
-                                  <p className="font-mono text-xs break-all text-gray-300">{spender}</p>
-                                </div>
-                                {depositManager && (
-                                  <div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Deposit Manager</p>
-                                    <p className="font-mono text-xs break-all text-gray-300">{depositManager}</p>
-                                  </div>
-                                )}
-                                {layer2 && (
-                                  <div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Layer2</p>
-                                    <p className="font-mono text-xs break-all text-gray-300">{layer2}</p>
-                                  </div>
-                                )}
-                              </>
-                            );
-                          })()}
-                          {decoded.functionName === 'requestWithdrawal' && (
-                            <>
-                              <div>
-                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Layer2</p>
-                                <p className="font-mono text-xs break-all text-gray-300">{decoded.args[0] as string}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Amount</p>
-                                <p className="font-mono text-sm text-white">{formatUnits(decoded.args[1] as bigint, 27)} TON</p>
-                              </div>
-                            </>
-                          )}
-                          {decoded.functionName === 'processRequest' && (
-                            <>
-                              <div>
-                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Layer2</p>
-                                <p className="font-mono text-xs break-all text-gray-300">{decoded.args[0] as string}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Receive as</p>
-                                <p className="font-mono text-sm text-white">{decoded.args[1] ? 'TON' : 'WTON'}</p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      );
-                    }
-                    return (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Data</p>
-                        <p className="font-mono text-xs break-all text-gray-400">
-                          {pendingTx.data.length > 66 ? `${pendingTx.data.slice(0, 66)}...` : pendingTx.data}
-                        </p>
-                      </div>
-                    );
-                  })()}
-                </div>
 
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={handleReject}
-                    disabled={isSigning}
-                    className="flex-1 px-4 py-2.5 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSign}
-                    disabled={isSigning}
-                    className="flex-1 px-4 py-2.5 bg-blue-500 hover:bg-blue-400 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
-                  >
-                    {isSigning ? 'Signing...' : 'Confirm'}
-                  </button>
-                </div>
+                    {/* Operator Selection - shared between tabs */}
+                    <div className="space-y-2">
+                      <label className="text-xs text-gray-400 uppercase tracking-wide">Operator</label>
+                      <select
+                        value={selectedOperator}
+                        onChange={(e) => setSelectedOperator(e.target.value)}
+                        className="w-full bg-gray-900/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+                      >
+                        <option value="" className="bg-gray-800">Select Operator</option>
+                        {OPERATORS[chainId === 1 ? 'mainnet' : 'sepolia'].map(op => (
+                          <option key={op.name} value={op.name} className="bg-gray-800">
+                            {op.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {stakingTab === 'stake' ? (
+                      <>
+                        {/* Token Selection */}
+                        <div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setStakingToken('TON')}
+                              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${stakingToken === 'TON'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                                }`}
+                            >
+                              TON
+                            </button>
+                            <button
+                              onClick={() => setStakingToken('WTON')}
+                              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${stakingToken === 'WTON'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                                }`}
+                            >
+                              WTON
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Amount Input */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <label className="text-xs text-gray-400 uppercase tracking-wide">Amount</label>
+                            <span className="text-xs text-gray-400">
+                              Balance: <span className="text-white">{
+                                stakingToken === 'TON'
+                                  ? formatBalance(tonBalance as bigint, 18)
+                                  : formatBalance(wtonBalance as bigint, 27)
+                              }</span> {stakingToken}
+                            </span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={stakingAmount}
+                              onChange={(e) => setStakingAmount(e.target.value)}
+                              placeholder="0.0"
+                              className="w-full bg-gray-900/50 border border-white/10 rounded-lg px-4 py-3 pr-28 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  const balance = stakingToken === 'TON' ? tonBalance : wtonBalance;
+                                  const decimals = stakingToken === 'TON' ? 18 : 27;
+                                  if (balance) {
+                                    setStakingAmount(formatUnits(balance as bigint, decimals));
+                                  }
+                                }}
+                                className="text-xs text-blue-400 hover:text-blue-300 font-medium"
+                              >
+                                MAX
+                              </button>
+                              <span className="text-gray-500">|</span>
+                              <span className="text-gray-400 text-sm">
+                                {stakingToken}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Network Info */}
+                        <div className="bg-gray-900/30 rounded-lg p-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-400">Network</span>
+                            <span className="text-white capitalize">{chainId === 1 ? 'Ethereum' : 'Sepolia'}</span>
+                          </div>
+                        </div>
+
+                        {/* Stake Button */}
+                        <button
+                          onClick={handleStake}
+                          disabled={!stakingAmount || parseFloat(stakingAmount) <= 0 || !selectedOperator}
+                          className="w-full py-3 bg-blue-500 hover:bg-blue-400 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-medium transition-colors"
+                        >
+                          Stake {stakingToken}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Staked Amount Display */}
+                        <div className="bg-gray-900/30 rounded-lg p-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-400">Staked Amount</span>
+                            <span className="text-lg font-semibold text-white">
+                              {selectedOperator
+                                ? formatBalance(stakedAmount as bigint, 27)
+                                : '—'
+                              } TON
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Pending Withdrawals List */}
+                        {selectedOperator && (
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <label className="text-xs text-gray-400 uppercase tracking-wide">Pending Withdrawals</label>
+                              {loadingWithdrawals && (
+                                <span className="text-xs text-gray-500">Loading...</span>
+                              )}
+                            </div>
+                            {pendingWithdrawals.length === 0 ? (
+                              <div className="bg-gray-900/30 rounded-lg p-3 text-center">
+                                <span className="text-sm text-gray-500">No pending withdrawals</span>
+                              </div>
+                            ) : (
+                              <div className="bg-gray-900/30 rounded-lg divide-y divide-white/5 max-h-48 overflow-y-auto">
+                                {pendingWithdrawals.map((req, idx) => {
+                                  const isReady = currentBlockNumber !== undefined && currentBlockNumber >= req.withdrawableBlockNumber;
+                                  const blocksRemaining = currentBlockNumber !== undefined
+                                    ? Number(req.withdrawableBlockNumber - currentBlockNumber)
+                                    : 0;
+                                  return (
+                                    <div key={idx} className="p-3 space-y-2">
+                                      <div className="flex justify-between items-center">
+                                        <div>
+                                          <span className="text-sm text-white font-medium">
+                                            {formatBalance(req.amount, 27)} TON
+                                          </span>
+                                          <div className="text-xs text-gray-500">
+                                            Block #{req.withdrawableBlockNumber.toString()}
+                                          </div>
+                                        </div>
+                                        <div className={`text-xs px-2 py-1 rounded ${isReady
+                                          ? 'bg-green-500/20 text-green-400'
+                                          : 'bg-yellow-500/20 text-yellow-400'
+                                          }`}>
+                                          {isReady ? 'Ready' : `${blocksRemaining} blocks`}
+                                        </div>
+                                      </div>
+                                      {isReady && (
+                                        <div className="flex gap-2">
+                                          <button
+                                            onClick={() => handleWithdraw(true)}
+                                            className="flex-1 py-1.5 bg-green-500 hover:bg-green-400 rounded text-white text-xs font-medium transition-colors"
+                                          >
+                                            Withdraw TON
+                                          </button>
+                                          <button
+                                            onClick={() => handleWithdraw(false)}
+                                            className="flex-1 py-1.5 bg-purple-500 hover:bg-purple-400 rounded text-white text-xs font-medium transition-colors"
+                                          >
+                                            Withdraw WTON
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Divider */}
+                        <div className="border-t border-white/10 pt-4">
+                          <label className="text-xs text-gray-400 uppercase tracking-wide">New Unstake Request</label>
+                        </div>
+
+                        {/* Unstake Amount Input */}
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={stakingAmount}
+                              onChange={(e) => setStakingAmount(e.target.value)}
+                              placeholder="0.0"
+                              className="w-full bg-gray-900/50 border border-white/10 rounded-lg px-4 py-3 pr-24 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  if (stakedAmount) {
+                                    setStakingAmount(formatUnits(stakedAmount as bigint, 27));
+                                  }
+                                }}
+                                className="text-xs text-blue-400 hover:text-blue-300 font-medium"
+                              >
+                                MAX
+                              </button>
+                              <span className="text-gray-500">|</span>
+                              <span className="text-gray-400 text-sm">TON</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Unstake Button */}
+                        <button
+                          onClick={handleUnstake}
+                          disabled={!stakingAmount || parseFloat(stakingAmount) <= 0 || !selectedOperator}
+                          className="w-full py-3 bg-orange-500 hover:bg-orange-400 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-medium transition-colors"
+                        >
+                          Request Withdrawal
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>
-        ) : (
-          /* Empty Desktop - Show welcome */
-          <div className="text-center text-white/40">
-            <img src="/tokamak.svg" alt="Tokamak Network" className="w-60 h-60 mx-auto mb-4" />
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* About Modal */}
       {showAboutModal && (
