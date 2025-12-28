@@ -32,9 +32,24 @@ let walletAddress: Address | null = null;
 let network: KnownNetwork | null = null;
 let txResultResolver: ((hash: Hash) => void) | null = null;
 let dashboardPort = 3000;
+let serverStarted = false;
+
+// Ensure server is started (lazy initialization)
+export function ensureServerStarted(port: number = 3000): void {
+  if (serverStarted) return;
+  serverStarted = true;
+  dashboardPort = port;
+
+  const app = createServer(port);
+  app.listen(port, () => {
+    console.error(`Server running on http://localhost:${port}`);
+  });
+  open(`http://localhost:${port}`);
+}
 
 // State getters/setters
 export function getWsClient(): WsClient | null {
+  ensureServerStarted();
   return wsClient;
 }
 
@@ -46,6 +61,7 @@ type ConnectionState =
   | { connected: true; address: Address; network: KnownNetwork }
   | { connected: false; address: null; network: null };
 export function getConnectionState(): ConnectionState {
+  ensureServerStarted();
   if (walletAddress && network) {
     return { connected: true, address: walletAddress, network };
   }
@@ -53,6 +69,7 @@ export function getConnectionState(): ConnectionState {
 }
 
 export function getAccount(): Address {
+  ensureServerStarted();
   if (!walletAddress) throw new Error(ERRORS.NO_WALLET_CONNECTED);
   return walletAddress;
 }
