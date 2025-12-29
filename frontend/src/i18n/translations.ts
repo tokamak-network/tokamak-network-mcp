@@ -4,7 +4,7 @@ export const translations = {
     'menu.connect': 'Connect',
 
     // Staking app
-    'staking.title': 'Tokamak Staking',
+    'staking.title': 'Tokamak Network Staking',
     'staking.subtitle': 'Stake or unstake tokens',
     'staking.connectWallet': 'Please connect your wallet first',
     'staking.stake': 'STAKE',
@@ -23,7 +23,7 @@ export const translations = {
     'staking.withdrawTON': 'Withdraw TON',
     'staking.withdrawWTON': 'Withdraw WTON',
     'staking.newUnstakeRequest': 'New Unstake Request',
-    'staking.requestWithdrawal': 'Request Withdrawal',
+    'staking.requestWithdrawal': 'Unstake',
     'staking.loading': 'Loading...',
 
     // Transaction
@@ -47,7 +47,8 @@ export const translations = {
     // About
     'about.tagline': 'L2 ON-DEMAND',
     'about.subtitle': 'TAILORED ETHEREUM',
-    'about.description': 'Tokamak Network offers customized L2 networks & simple way to deploy your own L2 based on your needs',
+    'about.description':
+      'Tokamak Network offers customized L2 networks & simple way to deploy your own L2 based on your needs',
     'about.goToWebsite': 'Go to Website',
 
     // Notifications
@@ -56,6 +57,11 @@ export const translations = {
     'notifications.noNotifications': 'No notifications',
     'notifications.txRequest': 'Transaction Request',
     'notifications.newTx': 'New transaction to',
+
+    // Stock app
+    'stock.title': 'TON Price',
+    'stock.subtitle': 'TOKAMAK token prices by exchange',
+    'stock.disclaimer': 'Prices update every 30 seconds',
   },
   ko: {
     // Menu bar
@@ -81,7 +87,7 @@ export const translations = {
     'staking.withdrawTON': 'TON으로 출금',
     'staking.withdrawWTON': 'WTON으로 출금',
     'staking.newUnstakeRequest': '새 언스테이킹 요청',
-    'staking.requestWithdrawal': '출금 요청',
+    'staking.requestWithdrawal': '언스테이킹',
     'staking.loading': '로딩 중...',
 
     // Transaction
@@ -105,7 +111,8 @@ export const translations = {
     // About
     'about.tagline': '온디맨드 L2',
     'about.subtitle': '맞춤형 이더리움',
-    'about.description': '토카막 네트워크는 맞춤형 L2 네트워크와 간편한 L2 배포 서비스를 제공합니다',
+    'about.description':
+      '토카막 네트워크는 맞춤형 L2 네트워크와 간편한 L2 배포 서비스를 제공합니다',
     'about.goToWebsite': '웹사이트 방문',
 
     // Notifications
@@ -114,6 +121,11 @@ export const translations = {
     'notifications.noNotifications': '알림 없음',
     'notifications.txRequest': '트랜잭션 요청',
     'notifications.newTx': '새 트랜잭션:',
+
+    // Stock app
+    'stock.title': 'TON 시세',
+    'stock.subtitle': '거래소별 TOKAMAK 토큰 가격',
+    'stock.disclaimer': '30초마다 가격이 갱신됩니다',
   },
 } as const;
 
