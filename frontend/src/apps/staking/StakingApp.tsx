@@ -176,10 +176,9 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
       <div
-        className="relative w-full max-w-md animate-fade-in"
+        className="relative w-full max-w-md animate-fade-in pointer-events-auto"
         style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
       >
         <div className="bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-2xl overflow-hidden border border-white/10">
