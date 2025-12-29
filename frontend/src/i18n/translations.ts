@@ -62,6 +62,11 @@ export const translations = {
     'stock.title': 'TON Price',
     'stock.subtitle': 'TOKAMAK token prices by exchange',
     'stock.disclaimer': 'Prices update every 30 seconds',
+
+    // Github app
+    'github.title': 'Github',
+    'github.subtitle': 'Tokamak Network repositories',
+    'github.viewAll': 'View all repositories',
   },
   ko: {
     // Menu bar
@@ -126,6 +131,11 @@ export const translations = {
     'stock.title': 'TON 시세',
     'stock.subtitle': '거래소별 TOKAMAK 토큰 가격',
     'stock.disclaimer': '30초마다 가격이 갱신됩니다',
+
+    // Github app
+    'github.title': 'Github',
+    'github.subtitle': '토카막 네트워크 저장소',
+    'github.viewAll': '모든 저장소 보기',
   },
 } as const;
 
