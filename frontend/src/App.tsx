@@ -386,7 +386,7 @@ function App() {
             onClick={() => handleSetLang(lang === 'en' ? 'ko' : 'en')}
             className="text-xs text-white/70 hover:text-white hover:bg-white/10 px-2 py-0.5 rounded transition-colors"
           >
-            {lang === 'en' ? '한국어' : 'EN'}
+            {lang === 'ko' ? 'KO' : 'EN'}
           </button>
 
           {/* Clock */}

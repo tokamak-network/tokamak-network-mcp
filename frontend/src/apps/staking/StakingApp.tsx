@@ -427,7 +427,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                                   </button>
 
                                   {/* Content Area */}
-                                  <div className="flex-1 p-3 space-y-2">
+                                  <div className="flex-1 p-3 space-y-2 relative group">
                                     <div className="text-center">
                                       <span className="text-sm text-white font-medium">
                                         {formatBalance(req.amount, 27)} TON
@@ -445,16 +445,16 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                                       </div>
                                     </div>
                                     {isReady && (
-                                      <div className="flex gap-2">
+                                      <div className="absolute inset-0 flex items-center justify-center gap-2 bg-gray-900/90 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                           onClick={() => handleWithdraw(true)}
-                                          className="flex-1 py-1.5 bg-green-500 hover:bg-green-400 rounded text-white text-xs font-medium transition-colors"
+                                          className="py-1.5 px-3 bg-green-500 hover:bg-green-400 rounded text-white text-xs font-medium transition-colors"
                                         >
                                           {t('staking.withdrawTON')}
                                         </button>
                                         <button
                                           onClick={() => handleWithdraw(false)}
-                                          className="flex-1 py-1.5 bg-purple-500 hover:bg-purple-400 rounded text-white text-xs font-medium transition-colors"
+                                          className="py-1.5 px-3 bg-purple-500 hover:bg-purple-400 rounded text-white text-xs font-medium transition-colors"
                                         >
                                           {t('staking.withdrawWTON')}
                                         </button>
