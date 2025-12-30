@@ -3,6 +3,7 @@ import { StakingApp } from './staking/StakingApp';
 import { StockApp } from './stock/StockApp';
 import { DocsApp } from './docs/DocsApp';
 import { GithubApp } from './github/GithubApp';
+import { DAOApp } from './dao/DAOApp';
 
 export const APPS: AppDefinition[] = [
   {
@@ -10,6 +11,12 @@ export const APPS: AppDefinition[] = [
     name: 'Staking',
     icon: '/tokamak.svg',
     component: StakingApp,
+  },
+  {
+    id: 'dao',
+    name: 'DAO',
+    icon: '/dao.svg',
+    component: DAOApp,
   },
   {
     id: 'stock',

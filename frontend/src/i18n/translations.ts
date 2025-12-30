@@ -67,6 +67,17 @@ export const translations = {
     'github.title': 'Github',
     'github.subtitle': 'Tokamak Network repositories',
     'github.viewAll': 'View all repositories',
+
+    // DAO app
+    'dao.title': 'DAO Governance',
+    'dao.subtitle': 'View and track agendas',
+    'dao.noAgendas': 'No agendas found',
+    'dao.yes': 'Yes',
+    'dao.no': 'No',
+    'dao.abstain': 'Abstain',
+    'dao.result': 'Result',
+    'dao.viewTransaction': 'View Transaction',
+    'dao.viewDiscussion': 'View Discussion',
   },
   ko: {
     // Menu bar
@@ -136,6 +147,17 @@ export const translations = {
     'github.title': 'Github',
     'github.subtitle': '토카막 네트워크 저장소',
     'github.viewAll': '모든 저장소 보기',
+
+    // DAO app
+    'dao.title': 'DAO 거버넌스',
+    'dao.subtitle': '안건 조회 및 추적',
+    'dao.noAgendas': '안건이 없습니다',
+    'dao.yes': '찬성',
+    'dao.no': '반대',
+    'dao.abstain': '기권',
+    'dao.result': '결과',
+    'dao.viewTransaction': '트랜잭션 보기',
+    'dao.viewDiscussion': '토론 보기',
   },
 } as const;
 

@@ -4,12 +4,14 @@ export const CONTRACTS = {
     WTON: '0xc4A11aaf6ea915Ed7Ac194161d2fC9384F15bff2',
     DepositManager: '0x0b58ca72b12f01fc05f8f252e226f3e2089bd00e',
     SeigManager: '0x0b55a0f463b6defb81c6063973763951712d0e5f',
+    agendaManager: '0xcD4421d082752f363E1687544a09d5112cD4f484',
   },
   sepolia: {
     TON: '0xa30fe40285B8f5c0457DbC3B7C8A280373c40044',
     WTON: '0x79E0d92670106c85E9067b56B8F674340dCa0Bbd',
     DepositManager: '0x90ffcc7F168DceDBEF1Cb6c6eB00cA73F922956F',
     SeigManager: '0x2320542ae933FbAdf8f5B97cA348c7CeDA90fAd7',
+    agendaManager: '0x1444f7a8bC26a3c9001a13271D56d6fF36B44f08',
   },
 } as const;
 
