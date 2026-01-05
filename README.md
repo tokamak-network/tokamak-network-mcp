@@ -1,6 +1,12 @@
-# Tokamak Network MCP Server
+# Tokamak Network MCP Server(+Tokamak Network Desktop)
 
 An MCP (Model Context Protocol) server for TON token staking on Tokamak Network.
+
+## Why
+
+토카막 네트워크는 탈중앙화 이념을 중요하게 생각합니다. 블록체인 자체는 탈중앙화되어 있지만, 이를 사용하기 위한 웹 인터페이스는 대부분 중앙화된 서버에 의존합니다. 체인이 정상 동작해도 프론트엔드 서버가 다운되면 사용자는 서비스에 접근할 수 없습니다.
+
+Tokamak Network MCP는 이 문제에 대한 해답입니다. 사용자는 자신의 PC에서 직접 인터페이스를 실행하고, AI를 통해 블록체인과 상호작용할 수 있습니다. 중앙화된 서버 없이도 누구나 토카막 네트워크의 모든 기능을 사용할 수 있습니다.
 
 ## Features
 
