@@ -1,12 +1,10 @@
 # Tokamak Network MCP Server(+Tokamak Network Desktop)
 
-An MCP (Model Context Protocol) server for TON token staking on Tokamak Network.
+An MCP (Model Context Protocol) server for Tokamak Network Ecosystem.
 
 ## Why
 
-토카막 네트워크는 탈중앙화 이념을 중요하게 생각합니다. 블록체인 자체는 탈중앙화되어 있지만, 이를 사용하기 위한 웹 인터페이스는 대부분 중앙화된 서버에 의존합니다. 체인이 정상 동작해도 프론트엔드 서버가 다운되면 사용자는 서비스에 접근할 수 없습니다.
-
-Tokamak Network MCP는 이 문제에 대한 해답입니다. 사용자는 자신의 PC에서 직접 인터페이스를 실행하고, AI를 통해 블록체인과 상호작용할 수 있습니다. 중앙화된 서버 없이도 누구나 토카막 네트워크의 모든 기능을 사용할 수 있습니다.
+Tokamak Network Community is committed to achieving absolute decentralization by extending the principles of self-sovereignty beyond the blockchain backend to the user interface itself. While traditional web-based frontends remain tethered to centralized servers—creating critical vulnerabilities such as single points of failure and susceptibility to censorship—the Tokamak Network MCP (Model Context Protocol) shatters this dependency. By enabling users to run interfaces directly on their local machines and interact with the protocol through AI, we ensure that access to the network remains permissionless and uninterrupted. This paradigm shift guarantees that as long as a single user exists, the network’s full utility remains alive, ultimately fulfilling our vision of an "unstoppable, truly decentralized ecosystem" where individual sovereignty is never compromised by third-party infrastructure.
 
 ## Features
 
@@ -15,6 +13,21 @@ Tokamak Network MCP는 이 문제에 대한 해답입니다. 사용자는 자신
 - **Staking**: Stake TON to Layer2 operators
 - **Unstaking**: Request staking withdrawal
 - **Withdrawal**: Withdraw unstaked tokens
+
+## Tokamak Network Desktop
+
+Tokamak Network Desktop is a Windows-style web-based UI that works alongside the MCP server. Ask the AI to call the `open-desktop` tool to open the Desktop in your browser.
+
+![Tokamak Network Desktop](assets/desktop.png)
+
+### Apps
+
+- **Staking**: Stake and unstake TON
+- **Price**: Real-time TON/WTON price
+- **DAO**: DAO governance agendas
+- **Layer2**: Layer2 operator information
+- **Docs**: Tokamak Network documentation
+- **Github**: Tokamak Network GitHub
 
 ## Supported Networks
 
@@ -117,6 +130,12 @@ codex mcp add tokamak-network -- bun run /path/to/tokamak-network-mcp/src/index.
 ```
 
 ## MCP Tools
+
+### Desktop
+
+| Tool | Description |
+|------|-------------|
+| `open-desktop` | Open Tokamak Network Desktop in browser |
 
 ### Wallet
 
