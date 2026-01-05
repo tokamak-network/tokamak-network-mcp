@@ -267,7 +267,7 @@ export function StakingApp({ onRequestTransaction, onClose, isConnected, chainId
                     {isOperatorDropdownOpen && (
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => setIsOperatorDropdownOpen(false)} />
-                        <div className="absolute z-20 w-full mt-1 bg-gray-800 border border-white/10 rounded-lg shadow-xl overflow-hidden">
+                        <div className="absolute z-20 w-full mt-1 bg-gray-800 border border-white/10 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                           {OPERATORS[chainId === 1 ? 'mainnet' : 'sepolia']
                             .filter(op => op.name !== selectedOperator)
                             .map(op => (
