@@ -18,7 +18,7 @@ Tokamak Network Community is committed to achieving absolute decentralization by
 
 Tokamak Network Desktop is a Windows-style web-based UI that works alongside the MCP server. Ask the AI to call the `open-desktop` tool to open the Desktop in your browser.
 
-![Tokamak Network Desktop](assets/desktop.png)
+
 
 ### Apps
 
