@@ -39,18 +39,25 @@ export function Layer2App({ onRequestTransaction, onClose, isConnected, chainId 
     },
   });
 
-  // Parse data into layer2 info
-  const layer2Data = operators.map((op, index) => {
-    const totalStakedResult = data?.[index * 2];
-    const operatorResult = data?.[index * 2 + 1];
+  // Parse data into layer2 info and sort by totalStaked (descending)
+  const layer2Data = operators
+    .map((op, index) => {
+      const totalStakedResult = data?.[index * 2];
+      const operatorResult = data?.[index * 2 + 1];
 
-    return {
-      name: op.name,
-      address: op.address,
-      totalStaked: totalStakedResult?.status === 'success' ? (totalStakedResult.result as bigint) : undefined,
-      operator: operatorResult?.status === 'success' ? (operatorResult.result as `0x${string}`) : undefined,
-    };
-  });
+      return {
+        name: op.name,
+        address: op.address,
+        totalStaked: totalStakedResult?.status === 'success' ? (totalStakedResult.result as bigint) : undefined,
+        operator: operatorResult?.status === 'success' ? (operatorResult.result as `0x${string}`) : undefined,
+      };
+    })
+    .sort((a, b) => {
+      if (a.totalStaked === undefined && b.totalStaked === undefined) return 0;
+      if (a.totalStaked === undefined) return 1;
+      if (b.totalStaked === undefined) return -1;
+      return b.totalStaked > a.totalStaked ? 1 : b.totalStaked < a.totalStaked ? -1 : 0;
+    });
 
   // Drag handlers
   useEffect(() => {
