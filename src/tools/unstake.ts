@@ -17,7 +17,7 @@ export function registerUnstakeTools(server: McpServer) {
     'unstake-ton',
     {
       title: 'Unstake TON tokens from Layer2 operator',
-      description: 'Request withdrawal of staked TON tokens from a Layer2 operator.',
+      description: 'Unstake TON tokens from a Layer2 operator.',
       inputSchema: unstakeTonSchema,
     },
     async (args: z.infer<z.ZodObject<typeof unstakeTonSchema>>) => {

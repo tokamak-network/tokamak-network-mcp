@@ -4,6 +4,7 @@ import { StockApp } from './stock/StockApp';
 import { DocsApp } from './docs/DocsApp';
 import { GithubApp } from './github/GithubApp';
 import { DAOApp } from './dao/DAOApp';
+import { Layer2App } from './layer2/Layer2App';
 
 export const APPS: AppDefinition[] = [
   {
@@ -35,5 +36,11 @@ export const APPS: AppDefinition[] = [
     name: 'Github',
     icon: '/github.svg',
     component: GithubApp,
+  },
+  {
+    id: 'layer2',
+    name: 'Layer2',
+    icon: '/layer2.svg',
+    component: Layer2App,
   },
 ];

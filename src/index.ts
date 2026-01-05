@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
+  registerDesktopTools,
   registerErc20Tools,
   registerStakeTools,
   registerTonTools,
@@ -16,7 +17,7 @@ const server = new McpServer({
 });
 
 // Register tools
-
+registerDesktopTools(server);
 registerTonTools(server);
 registerWalletTools(server);
 registerErc20Tools(server);

@@ -248,7 +248,7 @@ function App() {
           >
             <img src="/tokamak.svg" alt="Tokamak" className="w-4 h-4" />
           </button>
-          <span className="font-semibold">Tokamak Network MCP</span>
+          <span className="font-semibold">Tokamak Network Desktop</span>
         </div>
 
         {/* Right side - System icons */}

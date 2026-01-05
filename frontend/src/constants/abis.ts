@@ -25,3 +25,9 @@ export const AGENDA_MANAGER_ABI = parseAbi([
   'function agendas(uint256 index) view returns ((uint256 createdTimestamp, uint256 noticeEndTimestamp, uint256 votingPeriodInSeconds, uint256 votingStartedTimestamp, uint256 votingEndTimestamp, uint256 executableLimitTimestamp, uint256 executedTimestamp, uint256 countingYes, uint256 countingNo, uint256 countingAbstain, uint8 status, uint8 result, address[] voters, bool executed))',
   'function numAgendas() view returns (uint256)',
 ]);
+
+export const LAYER2_ABI = parseAbi([
+  'function totalStaked() view returns (uint256)',
+  'function operator() view returns (address)',
+  'function updateSeigniorage() returns (bool)',
+]);

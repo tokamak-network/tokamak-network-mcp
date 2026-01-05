@@ -78,6 +78,16 @@ export const translations = {
     'dao.result': 'Result',
     'dao.viewTransaction': 'View Transaction',
     'dao.viewDiscussion': 'View Discussion',
+
+    // Layer2 app
+    'layer2.title': 'Layer2',
+    'layer2.subtitle': 'View Layer2 Information',
+    'layer2.connectWallet': 'Please connect your wallet first',
+    'layer2.name': 'Name',
+    'layer2.totalStaked': 'Total Staked',
+    'layer2.operator': 'Operator',
+    'layer2.action': 'Action',
+    'layer2.updateSeigniorage': 'Update Seigniorage',
   },
   ko: {
     // Menu bar
@@ -158,6 +168,16 @@ export const translations = {
     'dao.result': '결과',
     'dao.viewTransaction': '트랜잭션 보기',
     'dao.viewDiscussion': '토론 보기',
+
+    // Layer2 app
+    'layer2.title': 'Layer2',
+    'layer2.subtitle': 'Layer2 정보 조회',
+    'layer2.connectWallet': '먼저 지갑을 연결해주세요',
+    'layer2.name': '이름',
+    'layer2.totalStaked': '총 스테이킹',
+    'layer2.operator': '오퍼레이터',
+    'layer2.action': '액션',
+    'layer2.updateSeigniorage': '시뇨리지 업데이트',
   },
 } as const;
 
