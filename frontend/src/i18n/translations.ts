@@ -5,7 +5,7 @@ export const translations = {
 
     // Staking app
     'staking.title': 'Tokamak Network Staking',
-    'staking.subtitle': 'Stake or unstake tokens',
+    'staking.subtitle': 'Stake or unstake $TOKAMAK tokens',
     'staking.connectWallet': 'Please connect your wallet first',
     'staking.stake': 'STAKE',
     'staking.unstake': 'UNSTAKE',
@@ -59,8 +59,8 @@ export const translations = {
     'notifications.newTx': 'New transaction to',
 
     // Stock app
-    'stock.title': 'TON Price',
-    'stock.subtitle': 'TOKAMAK token prices by exchange',
+    'stock.title': 'Price',
+    'stock.subtitle': '$TOKAMAK token prices by exchange',
     'stock.disclaimer': 'Prices update every 30 seconds',
 
     // Github app
@@ -100,7 +100,8 @@ export const translations = {
     'terminal.saveApiKey': 'Save',
     'terminal.settings': 'Settings',
     'terminal.thinking': 'Thinking...',
-    'terminal.welcome': 'Hello! I am Tokamak Network AI assistant. Ask me anything about TON staking, DAO governance, L2 networks, and more.',
+    'terminal.welcome':
+      'Hello! I am Tokamak Network AI assistant. Ask me anything about TON staking, DAO governance, L2 networks, and more.',
   },
   ko: {
     // Menu bar
@@ -203,7 +204,8 @@ export const translations = {
     'terminal.saveApiKey': '저장',
     'terminal.settings': '설정',
     'terminal.thinking': '생각 중...',
-    'terminal.welcome': '안녕하세요! 토카막 네트워크 AI 어시스턴트입니다. TON 스테이킹, DAO 거버넌스, L2 네트워크 등에 대해 질문해주세요.',
+    'terminal.welcome':
+      '안녕하세요! 토카막 네트워크 AI 어시스턴트입니다. TON 스테이킹, DAO 거버넌스, L2 네트워크 등에 대해 질문해주세요.',
   },
 } as const;
 

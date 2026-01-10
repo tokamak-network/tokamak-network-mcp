@@ -204,7 +204,7 @@ export function Layer2App({ onRequestTransaction, onClose, isConnected, chainId 
                       {isLoading ? (
                         <Skeleton className="w-20 h-4" />
                       ) : (
-                        <span className="text-white font-medium">{formatTotalStaked(layer2.totalStaked)} TON</span>
+                        <span className="text-white font-medium">{formatTotalStaked(layer2.totalStaked)} TOKAMAK</span>
                       )}
                     </div>
 
