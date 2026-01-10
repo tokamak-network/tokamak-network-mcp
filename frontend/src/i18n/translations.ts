@@ -88,6 +88,19 @@ export const translations = {
     'layer2.operator': 'Operator',
     'layer2.action': 'Action',
     'layer2.updateSeigniorage': 'Update Seigniorage',
+
+    // Terminal app
+    'terminal.title': 'Chat with AI Global_Tokamak',
+    'terminal.subtitle': 'Ask about Tokamak Network',
+    'terminal.placeholder': 'Ask a question about Tokamak Network...',
+    'terminal.send': 'Send',
+    'terminal.clear': 'Clear',
+    'terminal.apiKeyRequired': 'Please enter your Groq API key',
+    'terminal.apiKeyPlaceholder': 'Enter Groq API key',
+    'terminal.saveApiKey': 'Save',
+    'terminal.settings': 'Settings',
+    'terminal.thinking': 'Thinking...',
+    'terminal.welcome': 'Hello! I am Tokamak Network AI assistant. Ask me anything about TON staking, DAO governance, L2 networks, and more.',
   },
   ko: {
     // Menu bar
@@ -178,6 +191,19 @@ export const translations = {
     'layer2.operator': '오퍼레이터',
     'layer2.action': '액션',
     'layer2.updateSeigniorage': '시뇨리지 업데이트',
+
+    // Terminal app
+    'terminal.title': 'AI Global_Tokamak과 대화하기',
+    'terminal.subtitle': '토카막 네트워크 질문하기',
+    'terminal.placeholder': '토카막 네트워크에 대해 질문하세요...',
+    'terminal.send': '전송',
+    'terminal.clear': '초기화',
+    'terminal.apiKeyRequired': 'Groq API 키를 입력해주세요',
+    'terminal.apiKeyPlaceholder': 'Groq API 키 입력',
+    'terminal.saveApiKey': '저장',
+    'terminal.settings': '설정',
+    'terminal.thinking': '생각 중...',
+    'terminal.welcome': '안녕하세요! 토카막 네트워크 AI 어시스턴트입니다. TON 스테이킹, DAO 거버넌스, L2 네트워크 등에 대해 질문해주세요.',
   },
 } as const;
 

@@ -5,6 +5,7 @@ import { DocsApp } from './docs/DocsApp';
 import { GithubApp } from './github/GithubApp';
 import { DAOApp } from './dao/DAOApp';
 import { Layer2App } from './layer2/Layer2App';
+import { TerminalApp } from './terminal/TerminalApp';
 
 export const APPS: AppDefinition[] = [
   {
@@ -42,5 +43,11 @@ export const APPS: AppDefinition[] = [
     name: 'Layer2',
     icon: '/layer2.svg',
     component: Layer2App,
+  },
+  {
+    id: 'terminal',
+    name: 'AI Q&A',
+    icon: '/terminal.svg',
+    component: TerminalApp,
   },
 ];
